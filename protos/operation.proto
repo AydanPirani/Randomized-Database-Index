@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+message ReadOp {
+    uint64 key = 1;
+}
+
+message WriteOp {
+    uint64 key = 1;
+    uint64 value = 2;
+}
+
+message Op {
+    oneof operation {
+        ReadOp read = 1;
+        WriteOp write = 2;
+    }
+}
