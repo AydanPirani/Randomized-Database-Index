@@ -1,19 +1,24 @@
-mod database;
-mod indexes;
 mod types;
+mod indexes;
+mod database;
+mod executor;
 
 use database::Database;
+use executor::SequenceExecutor;
 use indexes::hashmap_index::HashMapIndex;
 
+mod protos {
+    include!(concat!(env!("OUT_DIR"), "/protos/mod.rs"));
+}
+
 fn main() {
-    println!("Hello, world!");
+    let index = HashMapIndex::new();
+    let index_box = Box::new(index);
 
-    let hashmap_box = Box::new(HashMapIndex::new());
+    let database = Database::new(index_box);
+    let mut executor = SequenceExecutor::new(database);
 
-    let mut d = Database::new(hashmap_box);
-
-    d.insert(12, 12);
-
-    let rv = d.get(&12).unwrap();
-    println!("{rv}");
+    executor.insert(12, 12);
+    let rv = executor.get(12).unwrap();
+    println!("{rv}")
 }
