@@ -17,9 +17,9 @@ fn main() {
     Codegen::new()
         .protoc()
         .protoc_path(&protoc_path)
-        .includes(&["protos"])
-        .input("protos/operation.proto")
-        .cargo_out_dir("protos")
+        .includes(&["proto"])
+        .input("proto/operation.proto")
+        .cargo_out_dir("proto")
         .run_from_script();
 
     // Codegen::new()
