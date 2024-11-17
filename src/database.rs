@@ -19,4 +19,8 @@ impl Database {
     pub fn get(&self, key: &KeyT) -> Option<&ValT> {
         return self.index.get(key);
     }
+
+    pub fn clear(&mut self) {
+        self.index.clear();
+    }
 }
