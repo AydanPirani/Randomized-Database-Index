@@ -4,3 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+scapegoat = "2.3.0"
+tinyvec = "1.6.0" # Needed for container functionality
+
+[[bin]]
+name = "check_scapegoat"
+path = "src/check_scapegoat.rs"
