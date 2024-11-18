@@ -34,14 +34,16 @@ fn main() {
     index.insert(1, 10);
     index.insert(2, 20);
     println!("Inserted (1, 10) and (2, 20)");
-    let mut iter = index.iter();
-    println!("Iterating over elements:");
-    assert_eq!(iter.next(), Some((&1, &10)));
-    println!("Found (1, 10)");
-    assert_eq!(iter.next(), Some((&2, &20)));
-    println!("Found (2, 20)");
-    assert_eq!(iter.next(), None);
-    println!("No more elements");
+    {
+        let mut iter = index.iter();
+        println!("Iterating over elements:");
+        assert_eq!(iter.next(), Some((&1, &10)));
+        println!("Found (1, 10)");
+        assert_eq!(iter.next(), Some((&2, &20)));
+        println!("Found (2, 20)");
+        assert_eq!(iter.next(), None);
+        println!("No more elements");
+    } // Ensure the iterator is dropped here
 
     // Test clear
     index.insert(1, 10);
