@@ -1,10 +1,12 @@
 use protobuf::Message;
 
 use crate::database::{self, Database};
+use crate::indexes::abstract_index::Index;
 use crate::protos::operation::op::Operation;
 use crate::types::{KeyT, ValT};
 use crate::protos::operation::{self, Op, ReadOp, WriteOp};
 use core::panic;
+use std::collections::HashMap;
 // use crate::protos::operation::Op
 use std::io;
 use std::fs::File;
@@ -14,27 +16,38 @@ use std::time::{Duration, Instant};
 use std::thread::sleep;
 
 pub struct SequenceExecutor {
-    database: Box<Database>,
+    databases: Vec<Box<Database>>,
+    ground_truth: HashMap<KeyT, ValT>,
     put_file: File,
     get_file: File,
 }
 
 impl SequenceExecutor {
-    pub fn new(database: Database) -> Self {
+    pub fn new() -> Self {
         SequenceExecutor {
-            database: Box::new(database),
+            databases: vec![],
+            ground_truth: HashMap::new(),
             get_file: File::create("get_output.txt").expect("Failed to open get_output.txt"),
             put_file: File::create("put_output.txt").expect("Failed to open put_output.txt"),
 
         }
     }
 
-    fn _execute_op(&mut self, op: Op) {
+    pub fn add_index<T>(&mut self) 
+    where 
+        T: Index + 'static,
+    {
+        let index = T::new();
+        let index_box = Box::new(index);
+        let new_database = Box::new(Database::new(index_box));
+        self.databases.push(new_database);
+    }
 
+    fn _execute_op(&mut self, op: Op) {
         match op.operation {
             Some (Operation::Read(ReadOp { key, special_fields: _ })) => {
                 let start_time = Instant::now();
-                self.get(key);
+                self.expect(key);
                 let elapsed_time = start_time.elapsed().as_nanos();
                 let _ = self.get_file.write(format!("{}\n", elapsed_time).as_bytes());
             }
@@ -50,7 +63,6 @@ impl SequenceExecutor {
         };
 
     }
-
 
     pub fn execute(&mut self, operation_file: &str) -> io::Result<()> {
         let mut file = File::open(operation_file)?;
@@ -76,19 +88,22 @@ impl SequenceExecutor {
     }
 
     pub fn insert(&mut self, key: KeyT, val: ValT) -> () {
-        self.database.insert(key, val);
-    }
-
-    pub fn get(&mut self, key: KeyT) -> Option<&ValT> {
-        return self.database.get(&key);
+        self.ground_truth.insert(key, val);
+        for database in self.databases.iter_mut() {
+            database.insert(key, val);
+        }
     }
 
     // Function for testing purposes
-    pub fn expect(&mut self, key: KeyT, expVal: ValT) -> bool {
-        let query_result = self.database.get(&key);
-        match query_result {
-            Some(val) => return *val == expVal,
-            None => return false,
+    pub fn expect(&mut self, key: KeyT) -> bool {
+        let exp_val = self.ground_truth.get(&key);
+        for database in self.databases.iter_mut() {
+            let query_result = database.get(&key);
+            if query_result != exp_val {
+                return false;
+            }
         }
+
+        return true;
     }
 }

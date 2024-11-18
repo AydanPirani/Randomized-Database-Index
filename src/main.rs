@@ -22,11 +22,11 @@ fn main() {
     }
 
     // let index = HashMapIndex::new();
-    let index = SkipListIndex::new();
-    let index_box = Box::new(index);
+    // let index = SkipListIndex::new();
+    // let index_box = Box::new(index);
 
-    let database = Database::new(index_box);
-    let mut executor = SequenceExecutor::new(database);
+    let mut executor = SequenceExecutor::new();
+    executor.add_index::<SkipListIndex>();
 
     match executor.execute(&args[1]) {
         Ok (_) => {println!{"Executed!"}}
