@@ -1,8 +1,9 @@
 [package]
-name = "main"
+name = "randomized-database-indexes"
 version = "0.1.0"
 edition = "2021"
 build = "build.rs"
+default-run = "randomized-database-indexes"
 
 [build-dependencies]
 protobuf-codegen = "3.7.1"
