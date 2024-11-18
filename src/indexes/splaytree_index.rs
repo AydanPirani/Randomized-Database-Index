@@ -23,4 +23,8 @@ impl Index for SplayTreeIndex {
     fn get(&self, key: &KeyT) -> Option<&ValT> {
         self.index.get(key)
     }
+
+    fn clear(&mut self) -> () {
+        self.index.clear();
+    }
 }
