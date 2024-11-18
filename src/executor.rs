@@ -1,6 +1,6 @@
 use protobuf::Message;
 
-use crate::database::{self, Database};
+use crate::database::{Database};
 use crate::indexes::abstract_index::Index;
 use crate::protos::operation::op::Operation;
 use crate::types::{KeyT, ValT};

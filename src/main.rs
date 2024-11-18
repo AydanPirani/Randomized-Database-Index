@@ -5,7 +5,7 @@ mod logger;
 mod types;
 
 use executor::SequenceExecutor;
-use indexes::hashmap_index::{self, HashMapIndex};
+use indexes::hashmap_index::{HashMapIndex};
 use indexes::skiplist_index::SkipListIndex;
 use logger::Logger;
 

@@ -1,6 +1,5 @@
 use std::fs::File;
 use crate::types::{KeyT};
-use std::io::prelude::*;
 use std::io::{self, Write};
 
 pub struct Logger {
