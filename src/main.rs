@@ -21,7 +21,8 @@ fn main() {
         panic!("Need a file path to execute!");
     }
 
-    let index = HashMapIndex::new();
+    // let index = HashMapIndex::new();
+    let index = SkipListIndex::new();
     let index_box = Box::new(index);
 
     let database = Database::new(index_box);

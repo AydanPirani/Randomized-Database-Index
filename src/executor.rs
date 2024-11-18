@@ -4,37 +4,51 @@ use crate::database::{self, Database};
 use crate::protos::operation::op::Operation;
 use crate::types::{KeyT, ValT};
 use crate::protos::operation::{self, Op, ReadOp, WriteOp};
+use core::panic;
 // use crate::protos::operation::Op
 use std::io;
 use std::fs::File;
 use std::io::prelude::*;
 
+use std::time::{Duration, Instant};
+use std::thread::sleep;
+
 pub struct SequenceExecutor {
     database: Box<Database>,
+    put_file: File,
+    get_file: File,
 }
 
 impl SequenceExecutor {
     pub fn new(database: Database) -> Self {
         SequenceExecutor {
             database: Box::new(database),
+            get_file: File::create("get_output.txt").expect("Failed to open get_output.txt"),
+            put_file: File::create("put_output.txt").expect("Failed to open put_output.txt"),
+
         }
     }
 
     fn _execute_op(&mut self, op: Op) {
-        let f: Box<dyn FnOnce()> = match op.operation {
+
+        match op.operation {
             Some (Operation::Read(ReadOp { key, special_fields: _ })) => {
-                println!("Executing read! key: {key}");
-                Box::new(move || { self.get(key); })
+                let start_time = Instant::now();
+                self.get(key);
+                let elapsed_time = start_time.elapsed().as_nanos();
+                let _ = self.get_file.write(format!("{}\n", elapsed_time).as_bytes());
             }
             Some (Operation::Write(WriteOp { key, value, special_fields: _ })) => {
-                println!("Executing write! key: {key}, val: {value}");
-                Box::new(move || { self.insert(key, value); }) 
+                let start_time = Instant::now();
+                self.insert(key, value);
+                let elapsed_time = start_time.elapsed().as_nanos();
+                let _ = self.put_file.write(format!("{}\n", elapsed_time).as_bytes());
             }
-            _ => {return;}
+            _ => {
+                panic!{"Something went wrong!"}
+            }
         };
 
-        // Can add stuff here to perform /other metric collection
-        f();
     }
 
 

@@ -2,6 +2,7 @@ import subprocess
 import sys
 import tempfile
 import struct
+import random
 
 PROTO_FILE = 'proto/operation.proto'
 
@@ -67,6 +68,12 @@ if __name__ == "__main__":
 
     s = SequenceGenerator(sys.argv[1])
     s.setSerialize(True)
-    s.createWrite(12, 12)
-    s.createRead(12)
-    # op = s.createWrite(12, 12, True)
+
+    for i in range(5000):
+        key = i*1000*random.random()
+        s.createWrite(int(key), int(key))
+        # if i % 2 == 0:
+        #     s.createRead(i//2)
+        
+        # if i > 3 and i % 3 == 0:
+        #     s.createRead(i - 2)
