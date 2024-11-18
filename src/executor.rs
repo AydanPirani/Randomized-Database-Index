@@ -4,58 +4,45 @@ use crate::database::{self, Database};
 use crate::indexes::abstract_index::Index;
 use crate::protos::operation::op::Operation;
 use crate::types::{KeyT, ValT};
-use crate::protos::operation::{self, Op, ReadOp, WriteOp};
+use crate::protos::operation::{Op, ReadOp, WriteOp};
 use core::panic;
 use std::collections::HashMap;
-// use crate::protos::operation::Op
-use std::io;
 use std::fs::File;
-use std::io::prelude::*;
+use std::io::{self, Read};
 
-use std::time::{Duration, Instant};
-use std::thread::sleep;
+use crate::logger::Logger;
+
+use std::time::Instant;
 
 pub struct SequenceExecutor {
-    databases: Vec<Box<Database>>,
+    databases: HashMap<&'static str, Database>,
     ground_truth: HashMap<KeyT, ValT>,
-    put_file: File,
-    get_file: File,
+    logger: Box<Logger>
 }
 
 impl SequenceExecutor {
-    pub fn new() -> Self {
+    pub fn new(logger: Logger) -> Self {
         SequenceExecutor {
-            databases: vec![],
+            databases: HashMap::new(),
             ground_truth: HashMap::new(),
-            get_file: File::create("get_output.txt").expect("Failed to open get_output.txt"),
-            put_file: File::create("put_output.txt").expect("Failed to open put_output.txt"),
-
+            logger: Box::new(logger),
         }
     }
 
-    pub fn add_index<T>(&mut self) 
-    where 
-        T: Index + 'static,
+    pub fn add_index(&mut self, index: Box<dyn Index>, index_name: &'static str) 
     {
-        let index = T::new();
-        let index_box = Box::new(index);
-        let new_database = Box::new(Database::new(index_box));
-        self.databases.push(new_database);
+        let database = Database::new(index);
+        self.databases.insert(index_name, database);
     }
 
     fn _execute_op(&mut self, op: Op) {
         match op.operation {
             Some (Operation::Read(ReadOp { key, special_fields: _ })) => {
-                let start_time = Instant::now();
                 self.expect(key);
-                let elapsed_time = start_time.elapsed().as_nanos();
-                let _ = self.get_file.write(format!("{}\n", elapsed_time).as_bytes());
+
             }
             Some (Operation::Write(WriteOp { key, value, special_fields: _ })) => {
-                let start_time = Instant::now();
                 self.insert(key, value);
-                let elapsed_time = start_time.elapsed().as_nanos();
-                let _ = self.put_file.write(format!("{}\n", elapsed_time).as_bytes());
             }
             _ => {
                 panic!{"Something went wrong!"}
@@ -64,8 +51,11 @@ impl SequenceExecutor {
 
     }
 
-    pub fn execute(&mut self, operation_file: &str) -> io::Result<()> {
+    pub fn execute(&mut self, operation_file: &str, output_filepath: &str) -> io::Result<()> {
         let mut file = File::open(operation_file)?;
+        self.logger.init(output_filepath)?;
+        self.clear();
+
         loop {
             let mut operation_length = [0u8; 4];
            
@@ -87,23 +77,37 @@ impl SequenceExecutor {
         Ok(())
     }
 
-    pub fn insert(&mut self, key: KeyT, val: ValT) -> () {
+    fn insert(&mut self, key: KeyT, val: ValT) -> () {
         self.ground_truth.insert(key, val);
-        for database in self.databases.iter_mut() {
+
+        for (index_name, database) in self.databases.iter_mut() {
+            let start_time = Instant::now();
             database.insert(key, val);
+            let elapsed_time = start_time.elapsed().as_nanos();
+            self.logger.write(index_name, "write", key, elapsed_time);
         }
     }
 
-    // Function for testing purposes
-    pub fn expect(&mut self, key: KeyT) -> bool {
+    fn expect(&mut self, key: KeyT) -> bool {
         let exp_val = self.ground_truth.get(&key);
-        for database in self.databases.iter_mut() {
+
+        for (index_name, database) in self.databases.iter_mut() {
+            let start_time = Instant::now();
             let query_result = database.get(&key);
+            let elapsed_time = start_time.elapsed().as_nanos();
+
             if query_result != exp_val {
-                return false;
+                panic!("{index_name} implemented incorrectly!")
             }
+            self.logger.write(index_name, "reads", key, elapsed_time);
         }
 
         return true;
+    }
+
+    fn clear(&mut self) -> () {
+        for database in self.databases.values_mut() {
+            database.clear();
+        }
     }
 }

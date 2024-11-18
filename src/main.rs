@@ -1,12 +1,13 @@
-mod types;
-mod indexes;
 mod database;
 mod executor;
+mod indexes;
+mod logger;
+mod types;
 
-use database::Database;
 use executor::SequenceExecutor;
-use indexes::hashmap_index::HashMapIndex;
+use indexes::hashmap_index::{self, HashMapIndex};
 use indexes::skiplist_index::SkipListIndex;
+use logger::Logger;
 
 use std::env;
 
@@ -16,20 +17,26 @@ mod protos {
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    
+
     if args.len() < 2 {
-        panic!("Need a file path to execute!");
+        panic!("Need 1) a file path to execute and 2) a file path to write to!");
     }
 
-    // let index = HashMapIndex::new();
-    // let index = SkipListIndex::new();
-    // let index_box = Box::new(index);
+    let logger = Logger::new();
+    let mut executor = SequenceExecutor::new(logger);
 
-    let mut executor = SequenceExecutor::new();
-    executor.add_index::<SkipListIndex>();
+    let hashmap = Box::new(HashMapIndex::new());
+    let skiplist = Box::new(SkipListIndex::new());
 
-    match executor.execute(&args[1]) {
-        Ok (_) => {println!{"Executed!"}}
-        Err (_) => {panic!("Something went wrong!")}
+    executor.add_index(hashmap, "hashmap");
+    executor.add_index(skiplist, "skiplist");
+
+    match executor.execute(&args[1], &args[2]) {
+        Ok(_) => {
+            println! {"Executed!"}
+        }
+        Err(_) => {
+            panic!("Something went wrong!")
+        }
     }
 }
