@@ -17,7 +17,7 @@ scapegoat = "2.3.0"
 tinyvec = "1.5.1"  
 micromath = "2.1.0"  
 smallnum = "0.4.1"  
-
+skiplist = "0.5.1"
 
 [[bin]]
 name = "scapegoat"

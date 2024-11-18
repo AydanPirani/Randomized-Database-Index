@@ -6,6 +6,7 @@ mod executor;
 use database::Database;
 use executor::SequenceExecutor;
 use indexes::hashmap_index::HashMapIndex;
+use indexes::skiplist_index::SkipListIndex;
 
 use std::env;
 
