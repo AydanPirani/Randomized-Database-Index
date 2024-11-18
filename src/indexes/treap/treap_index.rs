@@ -1,10 +1,11 @@
 use crate::types::{KeyT, ValT};
 use crate::indexes::treap::node::Node;
+use std::borrow::Borrow;
 
 use super::super::abstract_index::Index;
 
 pub struct TreapIndex {
-    root: Node<KeyT, ValT>,
+    root: Option<Node<KeyT, ValT>>,
 }
 
 impl TreapIndex {
@@ -16,32 +17,44 @@ impl TreapIndex {
 
     // Helper function for right rotation
     fn rotate_right(node: Node<KeyT, ValT>) -> Node<KeyT, ValT> {
-        let mut node_borrowed = node.borrow_mut();
+        let mut node_borrowed = node.borrow();
         let left_child = node_borrowed.left.take();
 
-        if let Some(left_rc) = left_child.clone() {
-            let mut left_borrowed = left_rc.borrow_mut();
-            node_borrowed.left = left_borrowed.right.take();
-            left_borrowed.right = Some(node.clone());
-            Some(left_rc)
-        } else {
-            Some(node)
-        }
+        // let mut left_borrowed = left_child.borrow();
+        node_borrowed.left = left_child.unwrap().right.take();
+        left_child.unwrap().right = Some(Box::new(node));
+
+        return left_child;
+
+        // if let Some(left_rc) = left_child.clone() {
+        //     let mut left_borrowed = left_rc.borrow();
+        //     node_borrowed.left = left_borrowed.right.take();
+        //     left_borrowed.right = Some(node.clone());
+        //     return left_rc
+        // } else {
+        //     return node
+        // }
     }
 
     // Helper function for left rotation
     fn rotate_left(node: Node<KeyT, ValT>) -> Node<KeyT, ValT> {
-        let mut node_borrowed = node.borrow_mut();
+        let mut node_borrowed = node.borrow();
         let right_child = node_borrowed.right.take();
 
-        if let Some(right_rc) = right_child.clone() {
-            let mut right_borrowed = right_rc.borrow_mut();
-            node_borrowed.right = right_borrowed.left.take();
-            right_borrowed.left = Some(node.clone());
-            Some(right_rc)
-        } else {
-            Some(node)
-        }
+        // let mut right_borrowed = right_child.borrow();
+        node_borrowed.right = right_child.unwrap().left.take();
+        right_child.unwrap().left = Some(Box::new(node));
+
+        return right_child;
+
+        // if let Some(right_rc) = right_child.clone() {
+        //     let mut right_borrowed = right_rc.borrow_mut();
+        //     node_borrowed.right = right_borrowed.left.take();
+        //     right_borrowed.left = Some(node.clone());
+        //     return right_rc
+        // } else {
+        //     return node
+        // }
     }
 
     // Adjusts the tree to maintain the Treap properties after insertion or updates
@@ -80,14 +93,14 @@ impl TreapIndex {
                 n_borrow.left = Self::insert(n_borrow.left.take(), key.clone(), value.clone(), priority);
                 if let Some(left_node) = &n_borrow.left {
                     if left_node.borrow().priority > n_borrow.priority {
-                        return Self::rotate_right(Rc::clone(&n));
+                        return Self::rotate_right(&n);
                     }
                 }
             } else if key > n_borrow.key {
                 n_borrow.right = Self::insert(n_borrow.right.take(), key.clone(), value.clone(), priority);
                 if let Some(right_node) = &n_borrow.right {
                     if right_node.borrow().priority > n_borrow.priority {
-                        return Self::rotate_left(Rc::clone(&n));
+                        return Self::rotate_left(&n);
                     }
                 }
             } else {
@@ -103,7 +116,7 @@ impl TreapIndex {
         let mut current = self.root;
         loop {
             match current {
-                Some (node_rc) => {
+                Some (node) => {
                     if key < &node.key {
                         current = node.left;
                     } else if key > &node.key {
@@ -114,11 +127,11 @@ impl TreapIndex {
                         let retval = &node.value;
                         // Balance the node after updating its priority
                         drop(node); // Release the borrow before balancing
-                        current = self.balance_node(node_rc);
-                        return retval;
+                        current = Some(self.balance_node(node));
+                        return Some(retval);
                     }        
                 }
-                _ => break;
+                _ => break,
             }
         }
         None

@@ -3,8 +3,8 @@ pub struct Node<KeyT, ValT> {
     pub key: KeyT,
     pub value: ValT,
     pub priority: u64,
-    pub left: Node<KeyT, ValT>,
-    pub right: Node<KeyT, ValT>,
+    pub left: Option<Box<Node<KeyT, ValT>>>,
+    pub right: Option<Box<Node<KeyT, ValT>>>,
 }
 
 impl<KeyT, ValT> Node<KeyT, ValT> {
