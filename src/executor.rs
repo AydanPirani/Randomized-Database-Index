@@ -99,7 +99,7 @@ impl SequenceExecutor {
             if query_result != exp_val {
                 panic!("{index_name} implemented incorrectly!")
             }
-            self.logger.write(index_name, "reads", key, elapsed_time);
+            self.logger.write(index_name, "read", key, elapsed_time);
         }
 
         return true;

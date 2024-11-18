@@ -72,8 +72,7 @@ if __name__ == "__main__":
     for i in range(5000):
         key = i*1000*random.random()
         s.createWrite(int(key), int(key))
-        # if i % 2 == 0:
-        #     s.createRead(i//2)
-        
-        # if i > 3 and i % 3 == 0:
-        #     s.createRead(i - 2)
+    
+    for i in range(2500):
+        key = i*1000*random.random()
+        s.createRead(int(key), int(key))

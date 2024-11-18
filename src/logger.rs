@@ -15,7 +15,7 @@ impl Logger {
 
     pub fn init(&mut self, output_filepath: &str) -> io::Result<()> {
         let mut out_file = File::create(output_filepath)?;
-        out_file.write(b"index,op,key,nanosecs\n")?;
+        out_file.write(b"index,op,key,time\n")?;
         self.out_file = Some(out_file);
         return Ok(());
     }

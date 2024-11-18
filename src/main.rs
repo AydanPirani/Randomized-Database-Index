@@ -27,17 +27,17 @@ fn main() {
     let logger = Logger::new();
     let mut executor = SequenceExecutor::new(logger);
 
-    let hashmap = Box::new(HashMapIndex::new());
-    executor.add_index(hashmap, "hashmap");
+    // let hashmap = Box::new(HashMapIndex::new());
+    // executor.add_index(hashmap, "hashmap");
 
     let skiplist = Box::new(SkipListIndex::new());
     executor.add_index(skiplist, "skiplist");
 
-    // let scapegoat = Box::new(ScapegoatIndex::new());
-    // executor.add_index(scapegoat, "scapegoat");
+    let scapegoat = Box::new(ScapegoatIndex::new());
+    executor.add_index(scapegoat, "scapegoat");
 
-    // let splaytree = Box::new(SplayTreeIndex::new());
-    // executor.add_index(splaytree, "splaytree");
+    let splaytree = Box::new(SplayTreeIndex::new());
+    executor.add_index(splaytree, "splaytree");
 
     match executor.execute(&args[1], &args[2]) {
         Ok(_) => {
