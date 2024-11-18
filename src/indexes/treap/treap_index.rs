@@ -69,11 +69,11 @@ impl TreapIndex {
     }
 
     fn insert(
-        node: NodeRef<KeyT, ValT>,
+        node: Node<KeyT, ValT>,
         key: KeyT,
         value: ValT,
         priority: u64,
-    ) -> NodeRef<KeyT, ValT> {
+    ) -> Node<KeyT, ValT> {
         if let Some(n) = node {
             let mut n_borrow = n.borrow_mut();
             if key < n_borrow.key {
@@ -93,7 +93,7 @@ impl TreapIndex {
             } else {
                 n_borrow.value = value;
             }
-            Some(Rc::clone(&n))
+            Some(n_borrow)
         } else {
             Some(Node::new(key, value))
         }
@@ -111,34 +111,17 @@ impl TreapIndex {
                     } else {
                         // Found the node, increment its priority
                         node.increment_priority();
+                        let retval = &node.value;
                         // Balance the node after updating its priority
                         drop(node); // Release the borrow before balancing
                         current = self.balance_node(node_rc);
-                        return current.value;
+                        return retval;
                     }        
                 }
                 _ => break;
             }
         }
-        
         None
-
-        // while let Some(node_rc) = current {
-        //     let mut node = node_rc.borrow_mut();
-        //     if key < &node.key {
-        //         current = node.left.clone();
-        //     } else if key > &node.key {
-        //         current = node.right.clone();
-        //     } else {
-        //         // Found the node, increment its priority
-        //         node.increment_priority();
-        //         // Balance the node after updating its priority
-        //         drop(node); // Release the borrow before balancing
-        //         current = self.balance_node(node_rc);
-        //         return current.value;
-        //     }
-        // }
-        // None
     }
 }
 
@@ -148,6 +131,6 @@ impl Index for TreapIndex {
     }
 
     fn get(&self, key: &KeyT) -> Option<&ValT> {
-        return self.get_node(key);
+        return &self.get_node(key);
     }
 }
