@@ -1,19 +1,33 @@
-mod database;
-mod indexes;
 mod types;
+mod indexes;
+mod database;
+mod executor;
 
 use database::Database;
+use executor::SequenceExecutor;
 use indexes::hashmap_index::HashMapIndex;
 
+use std::env;
+
+mod protos {
+    include!(concat!(env!("OUT_DIR"), "/proto/mod.rs"));
+}
+
 fn main() {
-    println!("Hello, world!");
+    let args: Vec<String> = env::args().collect();
+    
+    if args.len() < 2 {
+        panic!("Need a file path to execute!");
+    }
 
-    let hashmap_box = Box::new(HashMapIndex::new());
+    let index = HashMapIndex::new();
+    let index_box = Box::new(index);
 
-    let mut d = Database::new(hashmap_box);
+    let database = Database::new(index_box);
+    let mut executor = SequenceExecutor::new(database);
 
-    d.insert(12, 12);
-
-    let rv = d.get(&12).unwrap();
-    println!("{rv}");
+    match executor.execute(&args[1]) {
+        Ok (_) => {println!{"Executed!"}}
+        Err (_) => {panic!("Something went wrong!")}
+    }
 }
