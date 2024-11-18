@@ -1,5 +1,5 @@
 [package]
-name = "randomized-database-indexes"
+name = "main"
 version = "0.1.0"
 edition = "2021"
 build = "build.rs"
@@ -10,11 +10,14 @@ protoc-bin-vendored = "3.1.0"
 
 
 [dependencies]
+protobuf = "3.7.1"
+protoc-bin-vendored = "3.1.0"
 scapegoat = "2.3.0"
 tinyvec = "1.5.1"  
 micromath = "2.1.0"  
 smallnum = "0.4.1"  
 
+
 [[bin]]
-name = "check_scapegoat"
+name = "scapegoat"
 path = "src/check_scapegoat.rs"
