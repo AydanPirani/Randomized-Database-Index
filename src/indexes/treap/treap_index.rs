@@ -1,12 +1,10 @@
 use crate::types::{KeyT, ValT};
-use crate::indexes::treap::node::{Node, NodeRef};
-use std::rc::Rc;
-use std::cell::RefCell;
+use crate::indexes::treap::node::Node;
 
 use super::super::abstract_index::Index;
 
 pub struct TreapIndex {
-    root: NodeRef<KeyT, ValT>,
+    root: Node<KeyT, ValT>,
 }
 
 impl TreapIndex {
@@ -17,7 +15,7 @@ impl TreapIndex {
     }
 
     // Helper function for right rotation
-    fn rotate_right(node: Rc<RefCell<Node<KeyT, ValT>>>) -> NodeRef<KeyT, ValT> {
+    fn rotate_right(node: Node<KeyT, ValT>) -> Node<KeyT, ValT> {
         let mut node_borrowed = node.borrow_mut();
         let left_child = node_borrowed.left.take();
 
@@ -25,14 +23,14 @@ impl TreapIndex {
             let mut left_borrowed = left_rc.borrow_mut();
             node_borrowed.left = left_borrowed.right.take();
             left_borrowed.right = Some(node.clone());
-            Some(left_rc.clone())
+            Some(left_rc)
         } else {
-            Some(node.clone())
+            Some(node)
         }
     }
 
     // Helper function for left rotation
-    fn rotate_left(node: Rc<RefCell<Node<KeyT, ValT>>>) -> NodeRef<KeyT, ValT> {
+    fn rotate_left(node: Node<KeyT, ValT>) -> Node<KeyT, ValT> {
         let mut node_borrowed = node.borrow_mut();
         let right_child = node_borrowed.right.take();
 
@@ -40,24 +38,24 @@ impl TreapIndex {
             let mut right_borrowed = right_rc.borrow_mut();
             node_borrowed.right = right_borrowed.left.take();
             right_borrowed.left = Some(node.clone());
-            Some(right_rc.clone())
+            Some(right_rc)
         } else {
-            Some(node.clone())
+            Some(node)
         }
     }
 
     // Adjusts the tree to maintain the Treap properties after insertion or updates
-    fn balance_node(&mut self, node_rc: Rc<RefCell<Node<KeyT, ValT>>>) -> NodeRef<KeyT, ValT> {
+    fn balance_node(&mut self, node_rc: Node<KeyT, ValT>) -> Node<KeyT, ValT> {
         let node = node_rc.borrow();
         if let Some(left_rc) = &node.left {
             if left_rc.borrow().priority > node.priority {
-                drop(node);     // Release the borrow to avoid panic during rotation
+                drop(node);
                 return Self::rotate_right(node_rc);
             }
         }
         if let Some(right_rc) = &node.right {
             if right_rc.borrow().priority > node.priority {
-                drop(node);     // Release the borrow to avoid panic during rotation
+                drop(node);
                 return Self::rotate_left(node_rc);
             }
         }
@@ -151,13 +149,5 @@ impl Index for TreapIndex {
 
     fn get(&self, key: &KeyT) -> Option<&ValT> {
         return self.get_node(key);
-        // match self.get_node(key) with {
-            
-        // }
-        // if let Some(node_rc) = self.get_node(key) {
-        //     let node = node_rc.borrow();
-        //     return Some(&node.value.clone());
-        // }
-        // None
     }
 }
