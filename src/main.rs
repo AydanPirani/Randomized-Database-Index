@@ -6,6 +6,7 @@ mod types;
 
 use executor::SequenceExecutor;
 use indexes::hashmap_index::HashMapIndex;
+use indexes::treap_index::TreapIndex;
 use indexes::scapegoat_index::ScapegoatIndex;
 use indexes::skiplist_index::SkipListIndex;
 use indexes::splaytree_index::SplayTreeIndex;
@@ -32,6 +33,9 @@ fn main() {
 
     let skiplist = Box::new(SkipListIndex::new());
     executor.add_index(skiplist, "skiplist");
+
+    let treap = Box::new(TreapIndex::new());
+    executor.add_index(treap, "treap");
 
     let scapegoat = Box::new(ScapegoatIndex::new());
     executor.add_index(scapegoat, "scapegoat");

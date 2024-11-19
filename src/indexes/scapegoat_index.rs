@@ -41,7 +41,7 @@ impl Index for ScapegoatIndex {
         self.index.insert(key, val);
     }
 
-    fn get(&self, key: &KeyT) -> Option<&ValT> {
+    fn get(&mut self, key: &KeyT) -> Option<&ValT> {
         self.index.get(key)
     }
 

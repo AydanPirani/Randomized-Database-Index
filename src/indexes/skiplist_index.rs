@@ -20,7 +20,7 @@ impl Index for SkipListIndex {
         self.index.insert(key, val);
     }
 
-    fn get(&self, key: &KeyT) -> Option<&ValT> {
+    fn get(&mut self, key: &KeyT) -> Option<&ValT> {
         return self.index.get(key);
     }
 

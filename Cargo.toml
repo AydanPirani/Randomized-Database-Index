@@ -11,6 +11,7 @@ protoc-bin-vendored = "3.1.0"
 
 
 [dependencies]
+treap_non_random = "0.1.0-alpha.2"
 protobuf = "3.7.1"
 protoc-bin-vendored = "3.1.0"
 scapegoat = "2.3.0"

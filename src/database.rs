@@ -14,7 +14,7 @@ impl Database {
         self.index.insert(key, val);
     }
 
-    pub fn get(&self, key: &KeyT) -> Option<&ValT> {
+    pub fn get(&mut self, key: &KeyT) -> Option<&ValT> {
         return self.index.get(key);
     }
 
