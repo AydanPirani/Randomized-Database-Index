@@ -50,23 +50,15 @@ impl Index for TreapIndex {
         self.index.insert(Element::new(key, Pair { priority: 0, value: val}))
     }
 
-    fn get(&self, key: &KeyT) -> Option<&ValT> {
-        let ret = self.index.get(*key);
-        // return Some(&ret.unwrap().priority().value);
-        match ret {
-            Some(element) => {
-                // Increment the priority
-                let mut new_priority = element.priority().priority;
-                new_priority += 1;
+    fn get(&mut self, key: &KeyT) -> Option<&ValT> {
+        if let Some(element) = self.index.get(*key)  {
+            let value = element.priority().value;
+            let new_priority = element.priority().priority + 1;
+            self.index.insert(Element::new(*key, Pair { priority: new_priority+1, value: value}));
+        }  else {
+            return None;
+        }    
 
-                // Update the element in the treap with the new priority
-                // let updated_element = Element::new(*key, Pair { priority: new_priority, value: element.priority().value});
-                self.index.insert(Element::new(*key, Pair { priority: new_priority, value: element.priority().value}));
-
-                // Return the original value (before updating)
-                return Some(&element.priority().value);
-            }
-            None => return None
-        }
+        return Some(&(self.index.get(*key)?.priority().value));
     }
 }
