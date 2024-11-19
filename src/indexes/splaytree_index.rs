@@ -1,27 +1,27 @@
 use crate::types::{KeyT, ValT};
-use std::collections::HashMap;
+use splay::SplayMap;
 
 use super::abstract_index::Index;
 
-pub struct HashMapIndex {
-    index: HashMap<KeyT, ValT>,
+pub struct SplayTreeIndex {
+    index: SplayMap<KeyT, ValT>,
 }
 
-impl HashMapIndex {
+impl SplayTreeIndex {
     pub fn new() -> Self {
-        HashMapIndex {
-            index: HashMap::new(),
+        SplayTreeIndex {
+            index: SplayMap::new(),
         }
     }
 }
 
-impl Index for HashMapIndex {
+impl Index for SplayTreeIndex {
     fn insert(&mut self, key: KeyT, val: ValT) {
         self.index.insert(key, val);
     }
 
     fn get(&mut self, key: &KeyT) -> Option<&ValT> {
-        return self.index.get(key);
+        self.index.get(key)
     }
 
     fn clear(&mut self) -> () {

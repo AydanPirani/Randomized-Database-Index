@@ -7,9 +7,7 @@ pub struct Database {
 
 impl Database {
     pub fn new(index: Box<dyn Index>) -> Self {
-        Database {
-            index: index,
-        }
+        Database { index: index }
     }
 
     pub fn insert(&mut self, key: KeyT, val: ValT) {
@@ -18,5 +16,9 @@ impl Database {
 
     pub fn get(&mut self, key: &KeyT) -> Option<&ValT> {
         return self.index.get(key);
+    }
+
+    pub fn clear(&mut self) {
+        self.index.clear();
     }
 }

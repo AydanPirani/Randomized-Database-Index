@@ -1,27 +1,54 @@
 mod database;
+mod executor;
 mod indexes;
+mod logger;
 mod types;
 
-use database::Database;
+use executor::SequenceExecutor;
 use indexes::hashmap_index::HashMapIndex;
 use indexes::treap_index::TreapIndex;
+use indexes::scapegoat_index::ScapegoatIndex;
+use indexes::skiplist_index::SkipListIndex;
+use indexes::splaytree_index::SplayTreeIndex;
+use logger::Logger;
+
+use std::env;
+
+mod protos {
+    include!(concat!(env!("OUT_DIR"), "/proto/mod.rs"));
+}
 
 fn main() {
-    println!("Hello, world!");
+    let args: Vec<String> = env::args().collect();
 
-    let hashmap_box = Box::new(HashMapIndex::new());
+    if args.len() < 2 {
+        panic!("Need 1) a file path to execute and 2) a file path to write to!");
+    }
 
-    let mut d = Database::new(hashmap_box);
+    let logger = Logger::new();
+    let mut executor = SequenceExecutor::new(logger);
 
-    d.insert(12, 12);
+    // let hashmap = Box::new(HashMapIndex::new());
+    // executor.add_index(hashmap, "hashmap");
 
-    let rv = d.get(&12).unwrap();
-    println!("{rv}");
+    let skiplist = Box::new(SkipListIndex::new());
+    executor.add_index(skiplist, "skiplist");
 
-    // Try out TreapIndex
-    let treap_box = Box::new(TreapIndex::new());
-    let mut d2 = Database::new(treap_box);
-    d2.insert(12, 13);
-    let rv2 = d2.get(&12).unwrap();
-    println!("{rv2}");
+    let treap = Box::new(TreapIndex::new());
+    executor.add_index(treap, "treap");
+
+    let scapegoat = Box::new(ScapegoatIndex::new());
+    executor.add_index(scapegoat, "scapegoat");
+
+    let splaytree = Box::new(SplayTreeIndex::new());
+    executor.add_index(splaytree, "splaytree");
+
+    match executor.execute(&args[1], &args[2]) {
+        Ok(_) => {
+            println! {"Executed!"}
+        }
+        Err(_) => {
+            panic!("Something went wrong!")
+        }
+    }
 }

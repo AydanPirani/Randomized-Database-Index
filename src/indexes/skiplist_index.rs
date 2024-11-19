@@ -1,21 +1,21 @@
 use crate::types::{KeyT, ValT};
-use std::collections::HashMap;
+use skiplist::SkipMap;
 
 use super::abstract_index::Index;
 
-pub struct HashMapIndex {
-    index: HashMap<KeyT, ValT>,
+pub struct SkipListIndex {
+    index: SkipMap<KeyT, ValT>,
 }
 
-impl HashMapIndex {
+impl SkipListIndex {
     pub fn new() -> Self {
-        HashMapIndex {
-            index: HashMap::new(),
+        SkipListIndex {
+            index: SkipMap::new(),
         }
     }
 }
 
-impl Index for HashMapIndex {
+impl Index for SkipListIndex {
     fn insert(&mut self, key: KeyT, val: ValT) {
         self.index.insert(key, val);
     }

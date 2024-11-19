@@ -2,6 +2,25 @@
 name = "randomized-database-indexes"
 version = "0.1.0"
 edition = "2021"
+build = "build.rs"
+default-run = "randomized-database-indexes"
+
+[build-dependencies]
+protobuf-codegen = "3.7.1"
+protoc-bin-vendored = "3.1.0"
+
 
 [dependencies]
 treap_non_random = "0.1.0-alpha.2"
+protobuf = "3.7.1"
+protoc-bin-vendored = "3.1.0"
+scapegoat = "2.3.0"
+tinyvec = "1.5.1"  
+micromath = "2.1.0"  
+smallnum = "0.4.1"  
+skiplist = "0.5.1"
+splay = "0.1.8"
+
+[[bin]]
+name = "scapegoat"
+path = "src/check_scapegoat.rs"
