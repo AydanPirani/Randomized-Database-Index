@@ -61,4 +61,8 @@ impl Index for TreapIndex {
 
         return Some(&(self.index.get(*key)?.priority().value));
     }
+
+    fn clear(&mut self) -> () {
+        self.index.reset();
+    }
 }
