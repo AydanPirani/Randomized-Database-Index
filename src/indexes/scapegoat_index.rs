@@ -2,7 +2,7 @@ use scapegoat::SgMap;
 use crate::types::{KeyT, ValT};
 use super::abstract_index::Index;
 
-const CAPACITY: usize = 10;
+const CAPACITY: usize = 10000;
 
 pub struct ScapegoatIndex {
     index: SgMap<KeyT, ValT, CAPACITY>,

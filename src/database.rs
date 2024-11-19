@@ -7,9 +7,7 @@ pub struct Database {
 
 impl Database {
     pub fn new(index: Box<dyn Index>) -> Self {
-        Database {
-            index: index,
-        }
+        Database { index: index }
     }
 
     pub fn insert(&mut self, key: KeyT, val: ValT) {

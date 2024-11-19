@@ -1,45 +1,61 @@
 use protobuf::Message;
 
-use crate::database::{self, Database};
+use crate::database::{Database};
+use crate::indexes::abstract_index::Index;
 use crate::protos::operation::op::Operation;
 use crate::types::{KeyT, ValT};
-use crate::protos::operation::{self, Op, ReadOp, WriteOp};
-// use crate::protos::operation::Op
-use std::io;
+use crate::protos::operation::{Op, ReadOp, WriteOp};
+use core::panic;
+use std::collections::HashMap;
 use std::fs::File;
-use std::io::prelude::*;
+use std::io::{self, Read};
+
+use crate::logger::Logger;
+
+use std::time::Instant;
 
 pub struct SequenceExecutor {
-    database: Box<Database>,
+    databases: HashMap<&'static str, Database>,
+    ground_truth: HashMap<KeyT, ValT>,
+    logger: Box<Logger>
 }
 
 impl SequenceExecutor {
-    pub fn new(database: Database) -> Self {
+    pub fn new(logger: Logger) -> Self {
         SequenceExecutor {
-            database: Box::new(database),
+            databases: HashMap::new(),
+            ground_truth: HashMap::new(),
+            logger: Box::new(logger),
         }
     }
 
-    fn _execute_op(&mut self, op: Op) {
-        let f: Box<dyn FnOnce()> = match op.operation {
-            Some (Operation::Read(ReadOp { key, special_fields: _ })) => {
-                println!("Executing read! key: {key}");
-                Box::new(move || { self.get(key); })
-            }
-            Some (Operation::Write(WriteOp { key, value, special_fields: _ })) => {
-                println!("Executing write! key: {key}, val: {value}");
-                Box::new(move || { self.insert(key, value); }) 
-            }
-            _ => {return;}
-        };
-
-        // Can add stuff here to perform /other metric collection
-        f();
+    pub fn add_index(&mut self, index: Box<dyn Index>, index_name: &'static str) 
+    {
+        let database = Database::new(index);
+        self.databases.insert(index_name, database);
     }
 
+    fn _execute_op(&mut self, op: Op) {
+        match op.operation {
+            Some (Operation::Read(ReadOp { key, special_fields: _ })) => {
+                self.expect(key);
 
-    pub fn execute(&mut self, operation_file: &str) -> io::Result<()> {
+            }
+            Some (Operation::Write(WriteOp { key, value, special_fields: _ })) => {
+                self.insert(key, value);
+            }
+            _ => {
+                panic!{"Something went wrong!"}
+            }
+        };
+
+    }
+
+    pub fn execute(&mut self, operation_file: &str, output_filepath: &str) -> io::Result<()> {
         let mut file = File::open(operation_file)?;
+        self.logger.init(output_filepath)?;
+        self.clear();
+
         loop {
             let mut operation_length = [0u8; 4];
            
@@ -61,20 +77,37 @@ impl SequenceExecutor {
         Ok(())
     }
 
-    pub fn insert(&mut self, key: KeyT, val: ValT) -> () {
-        self.database.insert(key, val);
+    fn insert(&mut self, key: KeyT, val: ValT) -> () {
+        self.ground_truth.insert(key, val);
+
+        for (index_name, database) in self.databases.iter_mut() {
+            let start_time = Instant::now();
+            database.insert(key, val);
+            let elapsed_time = start_time.elapsed().as_nanos();
+            self.logger.write(index_name, "write", key, elapsed_time);
+        }
     }
 
-    pub fn get(&mut self, key: KeyT) -> Option<&ValT> {
-        return self.database.get(&key);
+    fn expect(&mut self, key: KeyT) -> bool {
+        let exp_val = self.ground_truth.get(&key);
+
+        for (index_name, database) in self.databases.iter_mut() {
+            let start_time = Instant::now();
+            let query_result = database.get(&key);
+            let elapsed_time = start_time.elapsed().as_nanos();
+
+            if query_result != exp_val {
+                panic!("{index_name} implemented incorrectly!")
+            }
+            self.logger.write(index_name, "read", key, elapsed_time);
+        }
+
+        return true;
     }
 
-    // Function for testing purposes
-    pub fn expect(&mut self, key: KeyT, expVal: ValT) -> bool {
-        let query_result = self.database.get(&key);
-        match query_result {
-            Some(val) => return *val == expVal,
-            None => return false,
+    fn clear(&mut self) -> () {
+        for database in self.databases.values_mut() {
+            database.clear();
         }
     }
 }
