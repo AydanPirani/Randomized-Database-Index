@@ -18,6 +18,8 @@ mod protos {
     include!(concat!(env!("OUT_DIR"), "/proto/mod.rs"));
 }
 
+const REPLICATION_FACTOR:u8 = 100;
+
 fn main() {
     let args: Vec<String> = env::args().collect();
 
@@ -28,20 +30,25 @@ fn main() {
     let logger = Logger::new();
     let mut executor = SequenceExecutor::new(logger);
 
-    // let hashmap = Box::new(HashMapIndex::new());
-    // executor.add_index(hashmap, "hashmap");
+    executor.init_index("skiplist");
+    executor.init_index("scapegoat");
+    executor.init_index("splaytree");
+    // executor.init_index("treap");
 
-    let skiplist = Box::new(SkipListIndex::new());
-    executor.add_index(skiplist, "skiplist");
+    for _ in 0..REPLICATION_FACTOR {
+        let skiplist = Box::new(SkipListIndex::new());
+        executor.add_index("skiplist", skiplist);
 
-    let treap = Box::new(TreapIndex::new());
-    executor.add_index(treap, "treap");
+        let scapegoat = Box::new(ScapegoatIndex::new());
+        executor.add_index("scapegoat", scapegoat);
 
-    let scapegoat = Box::new(ScapegoatIndex::new());
-    executor.add_index(scapegoat, "scapegoat");
+        let splaytree = Box::new(SplayTreeIndex::new());
+        executor.add_index("splaytree", splaytree);
+    
+        // let treap = Box::new(TreapIndex::new());
+        // executor.add_index("treap", treap);
+    }
 
-    let splaytree = Box::new(SplayTreeIndex::new());
-    executor.add_index(splaytree, "splaytree");
 
     match executor.execute(&args[1], &args[2]) {
         Ok(_) => {

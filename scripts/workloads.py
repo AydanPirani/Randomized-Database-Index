@@ -54,8 +54,6 @@ if __name__ == "__main__":
     workload = WorkloadGenerator(output_file, total_operations)
 
     # Example usage:
-    workload.generate_read_heavy_workload(read_ratio=0.9)  # Generate 90% reads, 10% writes
-    # workload.generate_write_heavy_workload(write_ratio=0.7)  # Generate 70% writes, 30% reads
-    # workload.generate_sequential_workload()  # Generate alternating sequential reads and writes
-    # workload.generate_random_workload()  # Generate random reads and writes
+    # workload.generate_workload(write_ratio=0.7)  # Generate 70% writes, 30% reads
     # workload.generate_repeated_key_workload(key=42, duplicates=50)  # 50 duplicate reads for key 42
+    workload.generate_cyclic_workload(write_ratio=0.95)
