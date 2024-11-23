@@ -8,32 +8,16 @@ class WorkloadGenerator:
         self.generator = SequenceGenerator(output_file)
         self.generator.setSerialize(True)
 
-    def generate_read_heavy_workload(self, read_ratio=0.8):
-        num_reads = int(self.total_operations * read_ratio)
-        num_writes = self.total_operations - num_reads
-
-        for _ in range(num_reads):
-            key = random.randint(1, 100)  # Random key
-            self.generator.createRead(key)
-
-        for _ in range(num_writes):
-            key = random.randint(1, 100)
-            value = random.randint(1, 1000)
-            self.generator.createWrite(key, value)
-
-    def generate_write_heavy_workload(self, write_ratio=0.8):
-        num_writes = int(self.total_operations * write_ratio)
-        num_reads = self.total_operations - num_writes
-
-        for _ in range(num_writes):
-            key = random.randint(1, 100)
-            value = random.randint(1, 1000)
-            self.generator.createWrite(key, value)
-
-        for _ in range(num_reads):
-            key = random.randint(1, 100)
-            self.generator.createRead(key)
-
+    def generate_workload(self, write_ratio=0.8):
+        for _ in range(self.total_operations):
+            if random.random() < write_ratio: 
+                key = random.randint(1, 100)
+                value = random.randint(1, 1000)
+                self.generator.createWrite(key, value)
+            else:
+                key = random.randint(1, 100)
+                self.generator.createRead(key)
+        
     def generate_sequential_workload(self):
         for i in range(1, self.total_operations + 1):
             if i % 2 == 0:  # Alternate between reads and writes
@@ -41,19 +25,18 @@ class WorkloadGenerator:
             else:
                 self.generator.createWrite(i, i * 10)
 
-    def generate_random_workload(self):
-        for _ in range(self.total_operations):
-            if random.random() < 0.5: 
-                key = random.randint(1, 100)
-                self.generator.createRead(key)
-            else:
-                key = random.randint(1, 100)
+    def generate_cyclic_workload(self, cycle_size=10, write_ratio=0.8):
+        for key in range(self.total_operations):
+            key = key % cycle_size
+            if random.random() < write_ratio: 
                 value = random.randint(1, 1000)
                 self.generator.createWrite(key, value)
-
+            else:
+                self.generator.createRead(key)
+        
     def generate_repeated_key_workload(self, key, duplicates):
         for _ in range(duplicates):
-            self.generator.createRead(key)
+            self.generator.createWrite(key, key * 10)
 
         remaining_ops = self.total_operations - duplicates
         for _ in range(remaining_ops):
