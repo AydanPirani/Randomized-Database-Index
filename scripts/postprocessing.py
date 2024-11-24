@@ -27,8 +27,11 @@ def get_plot(filepath, title):
 
     # Plot the second subplot for Read Times
     plt.subplot(2, 1, 2)
-    for index, times in grouped["read"].items():
-        sns.kdeplot(times, label=str(index))
+    try: 
+        for index, times in grouped["read"].items():
+            sns.kdeplot(times, label=str(index))
+    except Exception:
+        print("Read DNE")
     plt.title("KDE Plot for Read Times")
     plt.xlabel("Time")
     plt.ylabel("Density")

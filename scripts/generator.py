@@ -8,6 +8,7 @@ PROTO_FILE = 'proto/operation.proto'
 
 class SequenceGenerator:
     def __init__(self, output_file):
+        print("in init")
         self.tmp_dir = tempfile.TemporaryDirectory(delete=False)
         self.output_file = open(output_file, "wb")
         self.default_serialize = False
