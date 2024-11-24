@@ -8,7 +8,6 @@ PROTO_FILE = 'proto/operation.proto'
 
 class SequenceGenerator:
     def __init__(self, output_file):
-        print("in init")
         self.tmp_dir = tempfile.TemporaryDirectory(delete=False)
         self.output_file = open(output_file, "wb")
         self.default_serialize = False
@@ -61,7 +60,6 @@ class SequenceGenerator:
         size = len(serialized_message)
         self.output_file.write(struct.pack('=I', size))
         self.output_file.write(serialized_message)
-        print(f"Wrote message of {size} bytes!")
 
 if __name__ == "__main__": 
     if len(sys.argv) < 2:

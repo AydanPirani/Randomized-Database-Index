@@ -25,10 +25,11 @@ def random_workload(sequence_dir, output_dir, figure_dir):
             runner.generate_workload(write_ratio)
             del runner;
             
-            command = ["cargo", "run", sequence_file, output_file]
+            command = ["target/debug/randomized-database-indexes", sequence_file, output_file]
             subprocess.run(command)
             plt = postprocessing.get_plot(output_file, name)
             plt.savefig(image_file)
+            plt.close()
 
 
 def sequential_workload(sequence_dir, output_dir, figure_dir):
@@ -43,10 +44,11 @@ def sequential_workload(sequence_dir, output_dir, figure_dir):
             runner.generate_sequential_workload()
             del runner;
 
-            command = ["cargo", "run", sequence_file, output_file]
+            command = ["target/debug/randomized-database-indexes", sequence_file, output_file]
             subprocess.run(command)
             plt = postprocessing.get_plot(output_file, name)
             plt.savefig(image_file)
+            plt.close()
 
 def cyclic_workload(sequence_dir, output_dir, figure_dir):
     for operation_ct in operation_cts:
@@ -62,10 +64,11 @@ def cyclic_workload(sequence_dir, output_dir, figure_dir):
                 runner.generate_cyclic_workload(cycle_size=cycle_size, write_ratio=write_ratio)
                 del runner;
                 
-                command = ["cargo", "run", sequence_file, output_file]
+                command = ["target/debug/randomized-database-indexes", sequence_file, output_file]
                 subprocess.run(command)
                 plt = postprocessing.get_plot(output_file, name)
                 plt.savefig(image_file)
+                plt.close()
 
 def repeated_workload(sequence_dir, output_dir, figure_dir):
     for operation_ct in operation_cts:
@@ -81,10 +84,11 @@ def repeated_workload(sequence_dir, output_dir, figure_dir):
                 runner.generate_repeated_key_workload(duplicates=duplicate_ct, key=key)
                 del runner;
                 
-                command = ["cargo", "run", sequence_file, output_file]
+                command = ["target/debug/randomized-database-indexes", sequence_file, output_file]
                 subprocess.run(command)
                 plt = postprocessing.get_plot(output_file, name)
                 plt.savefig(image_file)
+                plt.close()
 
 
 def run_workloads(sequence_dir, output_dir, figure_dir):
@@ -110,6 +114,8 @@ if __name__ == "__main__":
         print("Must set RDI root!")
         exit(1)
 
+    os.chdir(root)
+    subprocess.run(["cargo", "build"])
     sequence_dir = f"{root}/sequences/generated"
     output_dir = f"{root}/out/generated"
     figure_dir = f"{root}/figures/generated"
