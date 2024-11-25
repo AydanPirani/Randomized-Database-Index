@@ -60,7 +60,6 @@ class SequenceGenerator:
         size = len(serialized_message)
         self.output_file.write(struct.pack('=I', size))
         self.output_file.write(serialized_message)
-        print(f"Wrote message of {size} bytes!")
 
 if __name__ == "__main__": 
     if len(sys.argv) < 2:

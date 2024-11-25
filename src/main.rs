@@ -18,7 +18,7 @@ mod protos {
     include!(concat!(env!("OUT_DIR"), "/proto/mod.rs"));
 }
 
-const REPLICATION_FACTOR:u8 = 100;
+const REPLICATION_FACTOR:u8 = 1;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -33,7 +33,7 @@ fn main() {
     executor.init_index("skiplist");
     executor.init_index("scapegoat");
     executor.init_index("splaytree");
-    // executor.init_index("treap");
+    executor.init_index("treap");
 
     for _ in 0..REPLICATION_FACTOR {
         let skiplist = Box::new(SkipListIndex::new());
@@ -45,8 +45,8 @@ fn main() {
         let splaytree = Box::new(SplayTreeIndex::new());
         executor.add_index("splaytree", splaytree);
     
-        // let treap = Box::new(TreapIndex::new());
-        // executor.add_index("treap", treap);
+        let treap = Box::new(TreapIndex::new());
+        executor.add_index("treap", treap);
     }
 
 
