@@ -35,6 +35,7 @@ fn main() {
     executor.init_index("scapegoat");
     executor.init_index("splaytree");
     executor.init_index("treap");
+    executor.init_index("treap_random");
 
     for _ in 0..REPLICATION_FACTOR {
         let skiplist = Box::new(SkipListIndex::new());
@@ -48,6 +49,9 @@ fn main() {
     
         let treap = Box::new(TreapIndex::new());
         executor.add_index("treap", treap);
+
+        let treap_random = Box::new(TreapRandomIndex::new());
+        executor.add_index("treap_random", treap_random);
     }
 
 
