@@ -7,6 +7,7 @@ mod types;
 use executor::SequenceExecutor;
 use indexes::hashmap_index::HashMapIndex;
 use indexes::treap_index::TreapIndex;
+use indexes::treap_random_index::TreapRandomIndex;
 use indexes::scapegoat_index::ScapegoatIndex;
 use indexes::skiplist_index::SkipListIndex;
 use indexes::splaytree_index::SplayTreeIndex;
