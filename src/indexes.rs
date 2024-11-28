@@ -5,3 +5,4 @@ pub mod treap_random_index;
 pub mod scapegoat_index;
 pub mod skiplist_index;
 pub mod splaytree_index;
+pub mod btree_index;

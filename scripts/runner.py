@@ -111,7 +111,7 @@ def run_workloads(sequence_dir, output_dir, figure_dir):
 if __name__ == "__main__":
     root = os.getenv('RDI_ROOT')
     if root is None:
-        print("Must set RDI root!")
+        print("Must set RDI_ROOT env val to point to root directory!")
         exit(1)
 
     os.chdir(root)

@@ -5,6 +5,7 @@ mod logger;
 mod types;
 
 use executor::SequenceExecutor;
+use indexes::btree_index::BTreeIndex;
 use indexes::hashmap_index::HashMapIndex;
 use indexes::treap_index::TreapIndex;
 use indexes::treap_random_index::TreapRandomIndex;
@@ -36,6 +37,7 @@ fn main() {
     executor.init_index("splaytree");
     executor.init_index("treap");
     executor.init_index("treap_random");
+    executor.init_index("btree");
 
     for _ in 0..REPLICATION_FACTOR {
         let skiplist = Box::new(SkipListIndex::new());
@@ -52,6 +54,9 @@ fn main() {
 
         let treap_random = Box::new(TreapRandomIndex::new());
         executor.add_index("treap_random", treap_random);
+
+        let btree = Box::new(BTreeIndex::new());
+        executor.add_index("btree", btree);
     }
 
 
