@@ -47,18 +47,30 @@ impl TreapIndex {
 
 impl Index for TreapIndex {
     fn insert(&mut self, key: KeyT, val: ValT) {
-        self.index.insert(Element::new(key, Pair { priority: 0, value: val}))
+        // If key already exists in index then delete + reinsert, else just insert
+        if let Some(element) = self.index.get(key)  {
+            let new_priority = element.priority().priority + 1;
+            // Delete + re-insert with (new val, updated priority)
+            self.index.delete(&key);
+            self.index.insert(Element::new(key, Pair { priority: new_priority, value: val}))
+        }
+        else {
+            self.index.insert(Element::new(key, Pair { priority: 0, value: val}))
+        }
+        
     }
 
     fn get(&mut self, key: &KeyT) -> Option<&ValT> {
+        let size = self.index.size();
         if let Some(element) = self.index.get(*key)  {
             let value = element.priority().value;
             let new_priority = element.priority().priority + 1;
+            // Delete + re-insert with (same val, updated priority)
+            self.index.delete(key);
             self.index.insert(Element::new(*key, Pair { priority: new_priority+1, value: value}));
         }  else {
             return None;
         }    
-
         return Some(&(self.index.get(*key)?.priority().value));
     }
 
