@@ -1,0 +1,89 @@
+\documentclass[sigconf]{acmart}
+
+\settopmatter{printacmref=false}
+\renewcommand\footnotetextcopyrightpermission[1]{}
+
+\AtBeginDocument{%
+  \providecommand\BibTeX{{%
+    Bib\TeX}}}
+
+\setcopyright{acmlicensed}
+\copyrightyear{2018}
+\acmYear{2018}
+\acmDOI{XXXXXXX.XXXXXXX}
+
+\acmConference[FA24 CS511 Advanced Data Management]
+{CS511 Advanced Data Management}{Fall 2024}{Urbana, IL}
+
+\begin{document}
+
+\title{CS511 Research Project - Stochastic Indexes for In-Memory Databases [R]}
+
+\author{Aryan Bhardwaj, Aydan Pirani, Anay Bhakat, Divya Koya}
+\email{aryanb3@illinois.edu, apirani2@illinois.edu, abhakat2@illinois.edu, divyack2@illinois.edu}
+\affiliation{%
+%   \institution{Univ of Illinois Urbana-Champaign}
+  % \city{Dublin}
+  % \state{Ohio}
+  \country{University of Illinois Urbana-Champaign, Urbana, Illinois, USA}
+}
+
+
+\maketitle
+
+\section{Introduction}
+
+Database indexes are fundamental tools for optimizing query performance by accelerating data retrieval. While traditional indexing techniques, such as B-Trees \cite{gao_2024_revisiting} and Binary Search Trees (BSTs), are widely adopted, they can face limitations when confronted with dynamic workloads and diverse data distributions. This research proposes to investigate alternative indexing strategies based on dynamic data structures like Binary Balanced Search Trees (BBSTs), including AVL and Red-Black Trees, as well as randomized structures like Skip Lists, Treaps \cite{treap}, Splay Trees \cite{algorithms}, and Scapegoat Trees \cite{algorithms}. The primary objective is to assess the performance of these structures in an in-memory database context, such as Redis \cite{redis}, by measuring the time and computational efficiency required for index construction and updates under various workloads and data distributions.
+
+\section{Existing Approaches}
+
+Contemporary database systems commonly employ B-Trees, BSTs, or Skip Lists \cite{prout_2019_the} for indexing purposes. While these structures offer significant performance benefits, they can sometimes incur overhead due to locking and rebalancing operations, which can impact their efficiency, especially in high-concurrency scenarios. For instance, B-Trees, while efficient for sequential access, can suffer from performance degradation when dealing with frequent updates and deletions. Similarly, BSTs, while simple to implement, can become unbalanced under certain insertion patterns, leading to increased search times.
+
+\section{Proposed Approaches}
+
+To address the limitations of traditional indexing techniques, we propose leveraging randomized data structures as alternatives. These structures, including Skip Lists, Treaps, Splay Trees, and Scapegoat Trees, offer several advantages:
+
+\begin{itemize}
+    \item Randomized structures often exhibit lower lock contention \cite{claudiu_2008_skip} compared to balanced trees, leading to improved performance in concurrent environments. By reducing the need for explicit locking mechanisms, these structures can minimize the risk of deadlocks and other concurrency-related issues. \cite{fraser_2007_concurrent}
+
+    \item These structures can adapt to changes in data distribution and query patterns, providing consistent performance over time. Unlike static structures like B-Trees, which require periodic reorganization, randomized structures can dynamically adjust their shape to optimize performance.
+
+    \item Many randomized structures offer efficient operations for insertion, deletion, and search, making them suitable for a wide range of database workloads. For example, Splay Trees, which automatically move frequently accessed nodes closer to the root, can significantly improve the performance of repeated search operations.
+\end{itemize}
+        
+We plan to implement these structures in a lock-free or low-lock manner to further minimize performance degradation in high-concurrency scenarios. By employing techniques such as compare-and-swap (CAS) and optimistic concurrency control, we can reduce the overhead associated with traditional locking mechanisms.
+
+\section{Evaluation Plan}
+
+We will employ an approach that includes generating diverse test sequences, establishing baseline metrics, and implementing comparative evaluations. Our methodology focuses on simulating realistic workloads by varying data distributions and operation frequencies. We will then measure critical performance metrics to provide an in-depth analysis of the proposed structures' capabilities under different conditions. Below, we outline the specific steps involved in our experimental design.
+
+\begin{enumerate}
+    \item We will create a diverse set of test sequences, each consisting of a mix of insertion, deletion, and search operations. These sequences will vary in terms of data distribution, operation frequency, and concurrency level. By generating a wide range of test cases, we can assess the performance of the proposed structures under various conditions.
+
+    \item We will establish baseline performance metrics using traditional B-Tree and BBST indexes. These baselines will serve as a reference point for comparing the performance of the novel structures.
+
+    \item  We will implement the proposed randomized structures (Skip Lists, Treaps, Splay Trees, and Scapegoat Trees) and evaluate their performance against the baselines. We will carefully optimize the implementations to ensure fair comparisons.
+
+    \item Measure Performance Metrics: We will measure key performance metrics, including:
+    \begin{enumerate}
+        \item Time to Perform Operations: The time taken to execute individual operations (insertions, deletions, and searches).
+        
+        \item Mean Operation Time: The average time taken to perform an operation, along with standard deviation.
+
+        \item Throughput: The number of operations processed per unit of time.
+
+        \item Memory: Amount of memory used by the index structures.
+    \end{enumerate}
+\end{enumerate}
+        
+
+By systematically comparing the performance of these structures under various workloads and data distributions, we aim to identify the most suitable indexing technique for different database scenarios.
+
+\clearpage
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{references}
+
+
+\end{document}
+\endinput
