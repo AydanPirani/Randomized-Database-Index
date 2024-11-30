@@ -20,7 +20,7 @@ mod protos {
     include!(concat!(env!("OUT_DIR"), "/proto/mod.rs"));
 }
 
-const REPLICATION_FACTOR:u8 = 1;
+const REPLICATION_FACTOR:u8 = 30;
 
 fn main() {
     let args: Vec<String> = env::args().collect();

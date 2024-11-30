@@ -72,23 +72,22 @@ def cyclic_workload(sequence_dir, output_dir, figure_dir):
 
 def repeated_workload(sequence_dir, output_dir, figure_dir):
     for operation_ct in operation_cts:
-        for key in keys:
-            for duplicate_ct in duplicate_counts:
-                name = f"repeated-{duplicate_ct}dups-{key}key-{operation_ct}ops"
+        for duplicate_ct in duplicate_counts:
+            name = f"repeated-{duplicate_ct}dups-{operation_ct}ops"
 
-                sequence_file = f"{sequence_dir}/{name}.seq"
-                output_file = f"{output_dir}/{name}.csv"
-                image_file = f"{figure_dir}/{name}.png"
+            sequence_file = f"{sequence_dir}/{name}.seq"
+            output_file = f"{output_dir}/{name}.csv"
+            image_file = f"{figure_dir}/{name}.png"
 
-                runner = workloads.WorkloadGenerator(output_file=sequence_file, total_operations=operation_ct)
-                runner.generate_repeated_key_workload(duplicates=duplicate_ct, key=key)
-                del runner;
-                
-                command = ["target/debug/randomized-database-indexes", sequence_file, output_file]
-                subprocess.run(command)
-                plt = postprocessing.get_plot(output_file, name)
-                plt.savefig(image_file)
-                plt.close()
+            runner = workloads.WorkloadGenerator(output_file=sequence_file, total_operations=operation_ct)
+            runner.generate_repeated_key_workload(duplicates=duplicate_ct)
+            del runner;
+            
+            command = ["target/debug/randomized-database-indexes", sequence_file, output_file]
+            subprocess.run(command)
+            plt = postprocessing.get_plot(output_file, name)
+            plt.savefig(image_file)
+            plt.close()
 
 
 def run_workloads(sequence_dir, output_dir, figure_dir):
