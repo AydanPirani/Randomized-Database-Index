@@ -32,16 +32,15 @@
 \maketitle
 
 \section{Introduction}
+Database indexes are fundamental tools for accelerating data retrieval, hence optimizing query performance. While traditional indexing techniques like B-Trees, Binary Search Trees (BSTs), and Skip Lists are widely adopted, they face limitations under dynamic workloads and diverse data distributions.
 
-
-Database indexes are fundamental tools for optimizing query performance by accelerating data retrieval. While traditional indexing techniques like B-Trees, Binary Search Trees (BSTs), and Skip Lists are widely adopted, they can face limitations when confronted with dynamic workloads and diverse data distributions.
-
-We propose alternative indexing strategies, based on randomized data structures. We then assess the performance of these indexes by measuring the latency required for index construction and updates under various workloads and data distributions.
+We propose alternative indexing strategies to mitigae these shortcomings, based on randomized data structures. We then assess the performance of these indexes by measuring the latency required for index construction and database updates under various workloads and data distributions.
 
 \subsection{Relevant Data Structures}
+In this section, we describe the randomized data structures that we use, either as a baseline (currently used as a database index) or as a proposed implementation.
 
-\subsubsection{B-Tree}
-A B-Tree is a self-balancing search tree optimized for systems that involve frequent disk access or large datasets. Unlike binary search trees (BSTs), each node in a B-Tree can store a large number of keys and has multiple child pointers, resulting in a high branching factor. This structure ensures that the tree remains shallow, minimizing the number of levels needed to access any given key. The reduced depth is especially beneficial in disk-based systems, as it reduces the number of disk I/O operations required to locate or update data.
+\subsubsection{B-Tree (Baseline)}
+A B-Tree is a self-balancing search tree optimized for systems that involve frequent disk access under large datasets. Each node in a B-Tree can store a large number of keys and has multiple child pointers, resulting in a high branching factor. This structure ensures that the tree remains shallow, minimizing the number of levels needed to access any given key. The reduced depth is especially beneficial in disk-based indexes, as it reduces the number of disk I/O operations required to locate or update data.
 
 B-Trees are inherently balanced because their structure is built from the leaves upwards. Whenever a node becomes too full or too sparse due to insertions or deletions, the tree undergoes structural adjustments, such as splitting or merging nodes, to maintain balance. These periodic adjustments ensure that the height of the tree grows logarithmically with the number of keys, keeping operations efficient.
 
@@ -71,41 +70,32 @@ A scapegoat tree is a type of self-balancing binary search tree that maintains i
 
 In terms of runtime, scapegoat trees support search and deletion operations with an average-case complexity of O(logn). Rebalancing occurs less frequently than in rotation-based trees, but can have a worst-case complexity of O(n) for individual rebalancing events. However, when averaged over all nodes in the tree, the amortized cost of rebalancing is effectively O(1) per node. This behavior arises because nodes rarely experience rebalancing individually, though occasional spikes in rebalancing cost occur.
 
-One of the key advantages of scapegoat trees is their minimal memory overhead. Unlike B-Trees, which rely on fixed-size nodes and metadata to maintain balance, scapegoat trees dynamically adapt to the dataset without additional memory requirements for balancing information. This makes them particularly suitable for applications with limited memory resources or where simplicity in design is prioritized.
+One of the key advantages of scapegoat trees is their minimal memory overhead. Unlike B-Trees, which rely on fixed-size nodes and metadata to maintain balance, scapegoat trees dynamically adapt to the dataset without additional memory requirements for balancing information. This makes them particularly suitable for applications with limited memory resources or where simplicity in design is prioritized. 
 
 \subsection{Limitations}
 Contemporary database systems predominantly rely on indexing structures like B-Trees, binary search trees (BSTs), and skip lists to manage and retrieve data efficiently. While these structures have been industry standards for years, they come with inherent limitations that impact their performance under certain workloads and data patterns.
 
 B-Trees, for example, are highly efficient for sequential data access and are well-suited for disk-based systems due to their shallow structure. However, their performance can degrade in scenarios with frequent updates and deletions, as these operations often require costly rebalancing to maintain the tree's structure. Despite their efficiency in general, B-Trees consistently operate at O(logn) time complexity, leaving limited room for improvement in dynamic environments.
+
 Binary search trees (BSTs) offer simplicity and flexibility in implementation but are prone to becoming unbalanced under skewed insertion patterns. In these cases, the height of the tree can grow significantly, leading to worst-case search times of O(n). Even balanced variants, such as AVL or red-black trees, require extra overhead to maintain their structure, which can become a bottleneck in high-throughput systems.
 
 Skip lists, another widely used indexing structure, provide a probabilistic alternative to tree-based systems. While their average-case performance matches that of B-Trees at O(logn), they can degrade to O(n) in the worst case, particularly if the probabilistic balance of the skip layers is disrupted. Furthermore, skip lists can suffer from poor locality, as their layout in memory may lead to suboptimal cache performance during reads and writes.
 
-Given these limitations, there is a clear need to explore alternative data structures that can address the shortcomings of traditional indexing techniques. Specifically, improving locality and adaptability could lead to faster reads and writes in dynamic and high-performance environments. This project focuses on benchmarking alternative structures, such as treaps, splay trees, and scapegoat trees, against industry standards like B-Trees and skip lists to assess their potential advantages.
+Given these limitations, there is a clear motivation for alternative data structures that can address these shortcomings. Specifically, improving locality and adaptability could lead to faster reads and writes in dynamic and high-performance environments. This project focuses on benchmarking alternative structures, such as treaps, splay trees, and scapegoat trees, against industry standards like B-Trees and skip lists to assess their potential advantages.
 
 These alternative structures offer several compelling features. Unlike static structures like B-Trees, which require periodic reorganization to maintain balance, treaps and scapegoat trees can dynamically adapt to changes in data distribution and query patterns. This adaptability allows for consistent performance over time, even in the face of fluctuating workloads. For instance, splay trees optimize search performance by automatically moving frequently accessed nodes closer to the root, ensuring faster subsequent lookups. Similarly, treaps can be modified to prioritize nodes based on their access frequency, dynamically adjusting their shape to improve performance. Scapegoat trees, on the other hand, periodically rebalance themselves without the need for constant adjustments, minimizing memory overhead while maintaining logarithmic performance for most operations.
 
 By evaluating these alternative data structures, this project aims to address the limitations of traditional indexing techniques and explore their potential to achieve better locality, faster operation times, and more efficient handling of dynamic workloads.
 
 
-\section{Existing Approaches}
+\section{Related Work}
 
 
-\section{Proposed Approaches}
+\section{Implementation}
 
-To address the limitations of traditional indexing techniques, we propose leveraging randomized data structures as alternatives. These structures, including Skip Lists, Treaps, Splay Trees, and Scapegoat Trees, offer several advantages:
+\subsection{Replication Factor}
 
-\begin{itemize}
-    \item Randomized structures often exhibit lower lock contention \cite{claudiu_2008_skip} compared to balanced trees, leading to improved performance in concurrent environments. By reducing the need for explicit locking mechanisms, these structures can minimize the risk of deadlocks and other concurrency-related issues. \cite{fraser_2007_concurrent}
-
-    \item These structures can adapt to changes in data distribution and query patterns, providing consistent performance over time. Unlike static structures like B-Trees, which require periodic reorganization, randomized structures can dynamically adjust their shape to optimize performance.
-
-    \item Many randomized structures offer efficient operations for insertion, deletion, and search, making them suitable for a wide range of database workloads. For example, Splay Trees, which automatically move frequently accessed nodes closer to the root, can significantly improve the performance of repeated search operations.
-\end{itemize}
-        
-We plan to implement these structures in a lock-free or low-lock manner to further minimize performance degradation in high-concurrency scenarios. By employing techniques such as compare-and-swap (CAS) and optimistic concurrency control, we can reduce the overhead associated with traditional locking mechanisms.
-
-\section{Evaluation Plan}
+\section{Evaluation}
 
 We will employ an approach that includes generating diverse test sequences, establishing baseline metrics, and implementing comparative evaluations. Our methodology focuses on simulating realistic workloads by varying data distributions and operation frequencies. We will then measure critical performance metrics to provide an in-depth analysis of the proposed structures' capabilities under different conditions. Below, we outline the specific steps involved in our experimental design.
 
