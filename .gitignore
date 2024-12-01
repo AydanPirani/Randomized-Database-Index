@@ -5,6 +5,11 @@ target/
 src/protos/
 sequences/
 
+report/*
+!report/references.bib
+!report/report.tex
+!report/acmart.cls
+
 *.csv
 *.png
 
