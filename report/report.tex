@@ -94,8 +94,13 @@ By evaluating these alternative data structures, this project aims to address th
 \section{Implementation}
 
 \subsection{Replication Factor}
+Since randomized data structures are not deterministic, we pre-determine a replication factor, representing the number of "copies" of the index we maintain. For example, a replication factor of 1 would update only one index, whereas a replication factor of 5 would create 5 indexes internally, and time each one independently.
+
+To minimize noise, we selected a replication factor of 30 for our experiments - 
 
 \section{Evaluation}
+
+\subsection {Workload Generation}
 
 We will employ an approach that includes generating diverse test sequences, establishing baseline metrics, and implementing comparative evaluations. Our methodology focuses on simulating realistic workloads by varying data distributions and operation frequencies. We will then measure critical performance metrics to provide an in-depth analysis of the proposed structures' capabilities under different conditions. Below, we outline the specific steps involved in our experimental design.
 
@@ -120,6 +125,12 @@ We will employ an approach that includes generating diverse test sequences, esta
         
 
 By systematically comparing the performance of these structures under various workloads and data distributions, we aim to identify the most suitable indexing technique for different database scenarios.
+
+\subsection{Micro-Benchmarks}
+
+\section{Discussion}
+
+\section{Next Steps}
 
 \clearpage
 
