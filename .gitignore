@@ -9,6 +9,7 @@ report/*
 !report/references.bib
 !report/report.tex
 !report/acmart.cls
+!report/assets/
 
 *.csv
 *.png

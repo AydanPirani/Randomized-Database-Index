@@ -6,6 +6,7 @@ import sys
 
 def get_plot(filepath, title):
     # Load the CSV data into a DataFrame
+    print(f"{filepath=}")
     df = pd.read_csv(filepath)
     df["log_time"] = np.log2(df["time"])
 

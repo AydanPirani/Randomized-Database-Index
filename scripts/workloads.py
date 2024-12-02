@@ -34,13 +34,28 @@ class WorkloadGenerator:
             else:
                 self.generator.createRead(key)
         
-    def generate_repeated_key_workload(self, duplicates):
+    def generate_reverse_random_workload(self, duplicates):
         remaining_ops = self.total_operations - duplicates
         key = None
         for _ in range(remaining_ops):
             key = random.randint(1, 100)
             value = random.randint(1, 1000)
             self.generator.createWrite(key, value)
+        
+        for key in range(duplicates):
+            key = random.randint(0, remaining_ops)
+            self.generator.createRead(key, key * 10)
+
+    def generate_reverse_repeated_workload(self, duplicates):
+        remaining_ops = self.total_operations - duplicates
+        key = None
+        for _ in range(remaining_ops):
+            key = random.randint(1, 100)
+            value = random.randint(1, 1000)
+            self.generator.createWrite(key, value)
+        
+        for key in range(duplicates):
+            self.generator.createRead(key, key * 10)
 
         for _ in range(duplicates):
             self.generator.createRead(key, key * 10)
