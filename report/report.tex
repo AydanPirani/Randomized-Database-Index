@@ -162,9 +162,8 @@ All workloads are defined by a set number of operations $O$, a write ratio $R_W$
 \subsubsection{Randomized}
 Randomized workloads are equivalent to a random "weighted coin toss" determining the operation, for each operation. Next, based on a the operation, we randomly generate keys (and values, if needed), then perform the operation. Since randomized workloads are essentially the best indicator of the status quo, we expect the baseline to be comparable to the dynamic indexes.
 
-% TODO: AYDAN
 \subsubsection{Sequential}
-Sequential workloads consist of alternating read and write operations, with the keys and values being randomly generated. Note that this is a stricter special variant of the randomized workload, where beyond just setting $R_W=0.5$, we ensure ordering of operations.
+Sequential workloads consist of rounds of alternating write and read operations, with each round's keys and values being randomly generated. Within a round, note that the key is the same for both writes and reads. Under this workload, a data structure can take advantage of locality to accelerate reads.
 
 \subsubsection{Cyclic}
 Cyclic workloads contain a cycle of a pre-determined size $C$. Keys are sequential from $0$ to $C$, and each operation is randomly determined based on $R_W$. Within a sufficiently-large cycle, we expect to see diminished baseline performance, due to the lack of adaptivity within data structures: in the worst case, a complete traversal must still be made to fetch the key.
@@ -175,7 +174,7 @@ Reverse random workloads are intended to simulate operations where we first buil
 
 % TODO: AYDAN
 \subsubsection{Reverse Repeated}
-Reverse Repeated workloads also simulate operations where we first build the index, and then perform queries off it. Similar to Reverse Random Workloads (\ref{reverse_random}), we build the index then perform $D$ reads in reverse order. However, we do this sequentially. We expect to see similar results here as to our random implementation. Since reverse locality of data leads to lower read time, we expect our dynamic data structures to outperform the baseline here.
+Reverse Repeated workloads also simulate operations where we first build the index, and then perform queries off it. Similar to Reverse Random Workloads (\ref{reverse_random}), we build the index by performing sequential inserts, then we perform $D$ reads in reverse order. However, we read exclusively the last inserted key - this illustrates the impact of spatial locality
 
 \section{Evaluation}
 After conducting experiments, we found results to be more apparent within write-heavy workloads, with a significant overlap in the keyspace (0-1024). Note that this does generalize, because real-life workloads contain exponentially more operations than we do, so the index performance will also generalize as the keyspace increases with operation count.
@@ -185,7 +184,6 @@ We define a complete traversal of an index as the path taken from the "root" to 
 In this section, we underscore some of our findings, and delve into a comparison between potential database indexes.
 
 \subsection{Randomized}
-
 \begin{center}
   \begin{table}[H]
     \begin{tabular}{|l|c|c|}
@@ -217,7 +215,7 @@ Although all four data structures have $O(logn)$ asymptotic runtime, it is appar
 
 \begin{center}
   \begin{figure}[H]
-    \includegraphics[scale=0.42]{assets/randomized.png}
+    \includegraphics[scale=0.40]{assets/randomized.png}
     \caption{Density plots of indexes under the randomized workload. Note that the splay tree is the most performant, both in terms of reads and write.}
   \end{figure}
 \end{center}
@@ -249,15 +247,16 @@ Although all four data structures have $O(logn)$ asymptotic runtime, it is appar
 
 Under the sequential workload, the splay tree is the optimal data structure, with the randomized treap coming next after it. Both of these data structures have better read and write performance than both of our baseline data structures (B-Tree and Skip List).
 
-Because the sequential workload alternates writes with successive reads of the same keys, splay trees demonstrate the strongest performance due to their support of temporal locality---each write operation inserts a node at the root 
+Because the sequential workload alternates writes with successive reads of the same keys, splay trees demonstrate the strongest performance due to their support of temporal locality. Each write operation inserts a node that is brought to the root of the tree, so the next read accesses the element at the root itself, giving us optimal performance.
+
+Additionally, the randomized treap when amortized becomes a balanced tree, so inserts and reads become on average $O(logn)$. B-Trees and Skip Lists have the same averagruntime as well, but have added overhead when it comes to maintaining keys, pointers, and (for B-Trees) splitting nodes during insertion. 
 
 \begin{center}
   \begin{figure}[H]
-    \includegraphics[scale=0.42]{assets/sequential.png}
-    \caption{Density plots of the indexes under the sequential workload. Notice that the splay tree and the randomized treap both outperformed the B-Tree and Skip List for both reads and writes.}
+    \includegraphics[scale=0.40]{assets/sequential.png}
+    \caption{Density plots of the indexes under the sequential workload. Notice that the splay tree and the randomized treap outperform the B-Tree and Skip List.}
   \end{figure}
 \end{center}
-\newpage
 
 \subsection{Cyclic}
 \begin{center}
@@ -283,19 +282,16 @@ Because the sequential workload alternates writes with successive reads of the s
   \end{table}
 \end{center}
 
-Under the cyclic workload, we see the real impact of spatial locality. Since cycles require a subset of keys to be accessed frequently, we expect locality-based data structures (splay tree) to dramatically outperform other data structures.
-
+Since cycles require a subset of keys to be accessed frequently, we expect locality-based data structures (splay tree) to dramatically outperform other data structures.
 At each cycle, the same set of keys are called - within all data structure, a complete traversal is made to retrieve the item for the first time. However, locality-based data structures will moe this item up towards the root, whereas other data structures will have to make the complete traversal every time the element is accessed. 
-
-This explains the multimodal shape of data observed - the farthest peak within the splay tree (at approximately $2^{6.75}$ nanoseconds) represents the time taken to make the first traversal, the middle peak (at approximately $2^{6.15}$ nanoseconds) represents the time taken in every cycle, 
+This explains the multimodal shape of data observed - the farthest peak within the splay tree (at approximately $2^{6.75}$ nanoseconds) represents the time taken to make the first traversal, the middle peak (at approximately $2^{6.15}$ nanoseconds) represents the time taken in every cycle, whereas the first peak represents the reads in the first cycle. This pattern reepeats for all other indexes, and here we see the advantage of the splay tree.
 
 \begin{center}
   \begin{figure}[H]
-    \includegraphics[scale=0.42]{assets/cyclic.png}
-    \caption{Density plots of the indexes. }
+    \includegraphics[scale=0.40]{assets/cyclic.png}
+    \caption{Density plots of the indexes. Now that splay trees outperform both indexes}
   \end{figure}
 \end{center}
-\newpage
 
 
 \subsection{Reverse Repeated}
@@ -323,9 +319,10 @@ This explains the multimodal shape of data observed - the farthest peak within t
 \end{center}
 
 
+
 \begin{center}
   \begin{figure}[H]
-    \includegraphics[scale=0.42]{assets/reverse-repeat.png}
+    \includegraphics[scale=0.40]{assets/reverse-repeat.png}
     \caption{Density plots of the indexes.}
   \end{figure}
 \end{center}
@@ -356,11 +353,13 @@ This explains the multimodal shape of data observed - the farthest peak within t
   \end{table}
 \end{center}
 
+Under the reverse random workload, notice that once again, the splay tree outperforms the two baseline data strucutes. Because this workload utilizes random accesses, locality does not play a major role and thus, we expect to see similar results as the randomized workload.
+
 \begin{center}
-  \begin{figure}[H]
-    \includegraphics[scale=0.42]{assets/reverse-random.png}
-    \caption{Density plots of the indexes.}
-  \end{figure}
+
+\begin{figure}[H]
+    \includegraphics[scale=0.40]{assets/reverse-random.png}
+\end{figure}
 \end{center}
 \newpage
 
@@ -384,7 +383,6 @@ Next steps for this research involve integration into modern databases, and seei
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{references}
-
 
 \end{document}
 \endinput
