@@ -70,17 +70,36 @@ def cyclic_workload(sequence_dir, output_dir, figure_dir):
                 plt.savefig(image_file)
                 plt.close()
 
-def repeated_workload(sequence_dir, output_dir, figure_dir):
+def reverse_random_workload(sequence_dir, output_dir, figure_dir):
     for operation_ct in operation_cts:
         for duplicate_ct in duplicate_counts:
-            name = f"repeated-{duplicate_ct}dups-{operation_ct}ops"
+            name = f"reverse-random-{duplicate_ct}dups-{operation_ct}ops"
 
             sequence_file = f"{sequence_dir}/{name}.seq"
             output_file = f"{output_dir}/{name}.csv"
             image_file = f"{figure_dir}/{name}.png"
 
             runner = workloads.WorkloadGenerator(output_file=sequence_file, total_operations=operation_ct)
-            runner.generate_repeated_key_workload(duplicates=duplicate_ct)
+            runner.generate_reverse_random_workload(duplicates=duplicate_ct)
+            del runner;
+            
+            command = ["target/debug/randomized-database-indexes", sequence_file, output_file]
+            subprocess.run(command)
+            plt = postprocessing.get_plot(output_file, name)
+            plt.savefig(image_file)
+            plt.close()
+
+def reverse_repeated_workload(sequence_dir, output_dir, figure_dir):
+    for operation_ct in operation_cts:
+        for duplicate_ct in duplicate_counts:
+            name = f"reverse-repeated-{duplicate_ct}dups-{operation_ct}ops"
+
+            sequence_file = f"{sequence_dir}/{name}.seq"
+            output_file = f"{output_dir}/{name}.csv"
+            image_file = f"{figure_dir}/{name}.png"
+
+            runner = workloads.WorkloadGenerator(output_file=sequence_file, total_operations=operation_ct)
+            runner.generate_reverse_repeated_workload(duplicates=duplicate_ct)
             del runner;
             
             command = ["target/debug/randomized-database-indexes", sequence_file, output_file]
@@ -90,21 +109,25 @@ def repeated_workload(sequence_dir, output_dir, figure_dir):
             plt.close()
 
 
+
 def run_workloads(sequence_dir, output_dir, figure_dir):
-    random = Process(target=random_workload, args=(sequence_dir, output_dir, figure_dir))
-    sequential = Process(target=sequential_workload, args=(sequence_dir, output_dir, figure_dir))
-    cyclic = Process(target=cyclic_workload, args=(sequence_dir, output_dir, figure_dir))
-    repeated = Process(target=repeated_workload, args=(sequence_dir, output_dir, figure_dir))
+    random_wl = Process(target=random_workload, args=(sequence_dir, output_dir, figure_dir))
+    sequential_wl = Process(target=sequential_workload, args=(sequence_dir, output_dir, figure_dir))
+    cyclic_wl = Process(target=cyclic_workload, args=(sequence_dir, output_dir, figure_dir))
+    reverse_random_wl = Process(target=reverse_random_workload, args=(sequence_dir, output_dir, figure_dir))
+    reverse_repeated_wl = Process(target=reverse_repeated_workload, args=(sequence_dir, output_dir, figure_dir))
 
-    random.start()
-    sequential.start()
-    cyclic.start()
-    repeated.start()
+    random_wl.start()
+    sequential_wl.start()
+    cyclic_wl.start()
+    reverse_repeated_wl.start()
+    reverse_random_wl.start()
 
-    random.join()
-    sequential.join()
-    cyclic.join()
-    repeated.join()
+    random_wl.join()
+    sequential_wl.join()
+    cyclic_wl.join()
+    reverse_repeated_wl.join()
+    reverse_random_wl.join()
 
 
 if __name__ == "__main__":

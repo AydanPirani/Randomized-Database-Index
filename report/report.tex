@@ -1,0 +1,386 @@
+\documentclass[sigconf]{acmart}
+
+\usepackage{float}
+\usepackage{graphicx}
+\graphicspath{ ./assets }
+
+\settopmatter{printacmref=false}
+\renewcommand\footnotetextcopyrightpermission[1]{}
+
+\AtBeginDocument{%
+  \providecommand\BibTeX{{%
+    Bib\TeX}}}
+
+\setcopyright{acmlicensed}
+\copyrightyear{2018}
+\acmYear{2018}
+\acmDOI{XXXXXXX.XXXXXXX}
+
+\acmConference[FA24 CS511 Advanced Data Management]
+{CS511 Advanced Data Management}{Fall 2024}{Urbana, IL}
+
+\begin{document}
+
+\title{CS511 Research Project - Stochastic Indexes for In-Memory Databases [R]}
+
+\author{Aryan Bhardwaj}
+\email{aryanb3@illinois.edu}
+\affiliation{%
+  \institution{University of Illinois Urbana-Champaign}
+  \city{Champaign}
+  \state{Illinois}
+  \country{USA}
+}
+\author{Anay Bhakat}
+\email{abhakat2@illinois.edu}
+\affiliation{%
+  \institution{University of Illinois Urbana-Champaign}
+  \city{Champaign}
+  \state{Illinois}
+  \country{USA}
+}
+\author{Aydan Pirani}
+\email{apirani2@illinois.edu}
+\affiliation{%
+  \institution{University of Illinois Urbana-Champaign}
+  \city{Champaign}
+  \state{Illinois}
+  \country{USA}
+}
+\author{Divya Koya}
+\email{divyack2@illinois.edu}
+\affiliation{%
+  \institution{University of Illinois Urbana-Champaign}
+  \city{Champaign}
+  \state{Illinois}
+  \country{USA}
+}
+
+\maketitle
+
+\section{Introduction}
+Database indexes are fundamental tools for accelerating data retrieval, hence optimizing query performance. While traditional indexing techniques like B-Trees \cite{gao_2024_revisiting}, Binary Search Trees (BSTs), and Skip Lists \cite{redis} are widely adopted, they face limitations under dynamic workloads and diverse data distributions.
+
+We propose alternative indexing strategies to mitigate these shortcomings, based on randomized data structures. We then assess the performance of these indexes by measuring the latency required for index construction and database updates under various workloads and data distributions.
+
+\subsection{Relevant Data Structures}
+In this section, we describe the randomized data structures that we use, either as a baseline (currently being used in industry as a database indexes) or as a proposed implementation.
+
+\subsubsection{B-Tree (Baseline)}
+A B-Tree\cite{btree_ds} is a self-balancing search tree optimized for systems that involve frequent disk access under large datasets. Each node in a B-Tree can store a large number of keys and has multiple child pointers, resulting in a high branching factor. This structure ensures that the tree remains shallow, minimizing the number of levels needed to access any given key. The reduced depth is especially beneficial in disk-based indexes, as it reduces the number of disk I/O operations required to locate or update data.
+
+B-Trees are inherently balanced because their structure is built from the leaves upwards. Whenever a node becomes too full or too sparse due to insertions or deletions, the tree undergoes structural adjustments, such as splitting or merging nodes, to maintain balance. These periodic adjustments ensure that the height of the tree grows logarithmically with the number of keys, keeping operations efficient.
+
+The runtime complexity of search, insertion, and deletion operations in a B-Tree is $O(logn)$, where the base of the logarithm depends on the branching factor (i.e., the maximum number of child pointers a node can have). Higher branching factors result in shorter trees, further improving performance in I/O-bound environments.
+
+\subsubsection{Skip List (Baseline)}
+A skip list\cite{skiplist_ds} is a probabilistic data structure that extends the concept of a sorted linked list by organizing elements into multiple layers. The bottom layer contains all the elements in sorted order, while each layer above it is a "skip" layer, where elements are connected by additional “skip” links that allow faster traversal by skipping over intermediate elements. These skip links reduce the time required to locate elements compared to a traditional linked list.
+
+The structure of a skip list is determined probabilistically. When a new element is added, it is assigned to one or more layers with a fixed probability so that on average, higher layers contain exponentially fewer elements than lower layers. During a search operation, the algorithm begins at the topmost layer, scanning forward until it encounters two consecutive elements-one smaller and one larger than the query. It then moves downward to the next layer, refining the search at each step, until it finds the target element.
+
+The height of a skip list (i.e., the number of layers) is approximately $O(logn)$, where n is the number of elements in the bottom layer. This results in an average-case time complexity of $O(logn)$ for search, insertion, and deletion operations.
+
+\subsubsection{Treap}
+A treap\cite{treap_ds} is a hybrid data structure that combines properties of a binary search tree (BST) and a heap, providing efficient support for ordered data operations. In a treap, each node is associated with two attributes: a key, which determines its position according to BST properties, and a priority, which enforces a max-heap property. The key organizes the tree such that for any given node, all nodes in its left subtree have smaller keys, and all nodes in its right subtree have larger keys. The priority ensures that each node's priority is greater than or equal to the priorities of its children, maintaining a max-heap-like structure.
+
+When inserting nodes into a treap, the key is used to place the node as in a regular binary search tree. After the insertion, rotations are applied to restore the max-heap property based on priorities. This balancing mechanism ensures that the tree remains structured and efficient for operations like search, insertion, and deletion.
+
+There are two main types of treaps: randomized and nonrandomized. In a randomized treap, priorities are assigned randomly when nodes are inserted. This randomness helps approximate the balanced structure of an AVL tree or red-black tree, providing expected logarithmic runtime for operations. In contrast, in a non-randomized treap, priorities can be explicitly defined by the user. This flexibility allows for prioritization schemes tailored to specific use cases, such as assigning higher priorities to frequently accessed nodes or data items with higher weights.
+
+\subsubsection{Splay Trees}
+A splay tree\cite{splaytree_ds} is a type of BST that optimizes access to frequently used elements by dynamically adjusting its structure. The defining feature of a splay tree is the operation known as splaying, which involves rotating the tree so that the most recently accessed node is brought to the root. This restructuring reduces the access time for elements that are repeatedly searched, inserted, or deleted, as they tend to be positioned closer to the root over time.
+
+Nodes are initially inserted using standard BST rules, and rotations are applied afterward to splay the newly inserted node. This process rearranges the tree, favoring commonly accessed elements without requiring additional metadata or balance factors.
+
+One trade-off of splay trees is that they do not guarantee a balanced structure. In the worst case, individual operations can take $O(n)$ time when the tree becomes highly unbalanced. However, the amortized time complexity of search, insertion, and deletion operations is $O(logn)$, where n is the number of elements in the tree. This means that while some operations might be slow, the average time per operation remains efficient over a sequence of operations.
+
+\subsubsection{Scapegoat Trees}
+A scapegoat tree\cite{scapegoat_ds} is a type of self-balancing binary search tree that maintains its balance without relying on rotations. Instead of making small adjustments during each operation, scapegoat trees periodically rebuild entire subtrees when a balance threshold is exceeded. This threshold, defined as a balance factor, can be specified when the tree is initialized. The absence of rotations makes scapegoat trees conceptually simpler compared to other self-balancing trees like AVL or red-black trees.
+
+In terms of runtime, scapegoat trees support search and deletion operations with an average-case complexity of $O(logn)$. Rebalancing occurs less frequently than in rotation-based trees, but can have a worst-case complexity of $O(n)$ for individual rebalancing events. However, when averaged over all nodes in the tree, the amortized cost of rebalancing is effectively O(1) per node. This behavior arises because nodes rarely experience rebalancing individually, though occasional spikes in rebalancing cost occur.
+
+One of the key advantages of scapegoat trees is their minimal memory overhead. Unlike B-Trees, which rely on fixed-size nodes and metadata to maintain balance, scapegoat trees dynamically adapt to the dataset without additional memory requirements for balancing information. This makes them particularly suitable for applications with limited memory resources or where simplicity in design is prioritized. 
+
+\subsection{Limitations}
+Contemporary database systems predominantly rely on indexing structures like B-Trees, binary search trees (BSTs), and skip lists to manage and retrieve data efficiently. While these structures have been industry standards for years, they come with inherent limitations that impact their performance under certain workloads and data patterns.
+
+B-Trees, for example, are highly efficient for sequential data access and are well-suited for disk-based systems due to their shallow structure. However, their performance can degrade in scenarios with frequent updates and deletions, as these operations often require costly rebalancing to maintain the tree's structure. Despite their efficiency in general, B-Trees consistently operate at $O(logn)$ time complexity, leaving limited room for improvement in dynamic environments.
+
+Binary search trees (BSTs) offer simplicity and flexibility in implementation but are prone to becoming unbalanced under skewed insertion patterns. In these cases, the height of the tree can grow significantly, leading to worst-case search times of $O(n)$. Even balanced variants, such as AVL or red-black trees, require extra overhead to maintain their structure, which can become a bottleneck in high-throughput systems.
+
+Skip lists, another widely used indexing structure, provide a probabilistic alternative to tree-based systems. While their average-case performance matches that of B-Trees at $O(logn)$, they can degrade to $O(n)$ in the worst case, particularly if the probabilistic balance of the skip layers is disrupted. Furthermore, skip lists can suffer from poor locality, as their layout in memory may lead to suboptimal cache performance during reads and writes.
+
+Given these limitations, there is a clear motivation for alternative data structures that can address these shortcomings. Specifically, improving locality and adaptability could lead to faster reads and writes in dynamic and high-performance environments. This project focuses on benchmarking alternative structures, such as treaps, splay trees, and scapegoat trees, against industry standards like B-Trees and skip lists to assess their potential advantages.
+
+Unlike static structures like B-Trees, which require periodic reorganization to maintain balance, treaps and scapegoat trees can dynamically adapt to changes in data distribution and query patterns. This adaptability allows for consistent performance over time, even in the face of fluctuating workloads. For instance, splay trees optimize search performance by automatically moving frequently accessed nodes closer to the root, ensuring faster subsequent lookups. Similarly, treaps can be modified to prioritize nodes based on their access frequency, dynamically adjusting their shape to improve performance. Scapegoat trees, on the other hand, periodically rebalance themselves without the need for constant adjustments, minimizing memory overhead while maintaining logarithmic performance for most operations.
+
+By evaluating these alternative data structures, this project aims to address the limitations of traditional indexing techniques and explore their potential to achieve better locality, faster operation times, and more efficient handling of dynamic workloads.
+
+\section{Related Work}
+Skip lists have been a foundational in-memory data structure for log-structured merge-tree (LSM)-based databases and storage systems. One of the first recognized systems to adopt skip lists for database indexing was Google's LevelDB, which set a precedent for skip lists' use in modern databases. Following this, systems like SingleStoreDB \cite{prout_2019_the} and RocksDB have also integrated skip lists into their indexing mechanisms.
+
+Recent works have also explored the use of splay trees for indexing purposes. The SPST-Index \cite{spst_index}, for instance, introduces self-pruning splay trees as a mechanism for caching partitions in database crackers, which dynamically build indexes on database partitions. However, unlike SPST-Index, which applies splay trees at the partition level, our work utilizes splay trees as a primary index directly on the data itself.
+
+\section{Implementation}
+For implementation, we assumed that both our keys and our values were 64 bit fields. However, for simplicity, we will refer to keys and values as integers, since a standard integer can fit within 64 bits.
+
+\subsection{Operations/API}
+We present a very simple API for operations:
+\begin{itemize}
+  \item set(key, value)
+  \item get(key)
+  \item clear()
+\end{itemize}
+Note that we do not support delete operations - since we are operating under the assumption that a lot of our data is time-series data, we acknowledge that most time-series data should be stored, and hence do not support the delete operation.
+
+Given these operations, we define a .proto file to allow operations to be passed across processes effectively.
+
+\subsection{System Implementation}
+Since our main focus was on index design (and by extension, retrieval times), we note that a single-node database will suffice for benchmarking. Thus, our system workflow consisted of the following components:
+
+\subsubsection{Database Class}
+The database class was the core component of our work. The class serves as an wrapper to the index.
+
+\subsubsection{Sequence Generator} 
+The sequence generator provides functionality to create read/write operations based of the Protobuf definition, and writes those into a binary file. 
+
+\subsubsection{Workload Generator}
+While the sequence generator can generate sequences, the workload generator extends the API provided by the sequence generator to combine operations into different sequences, known as workloads. See Section \ref{workloads} for more information about workloads.
+
+\subsubsection{Executor}
+The executor maintains an internal state of all the indices present in the current testing run. Within each run, it clears the index, takes as input a binary file containing a list of protobuf operations, and executes each operation on each index. The executor also logs start and end times per operation per index, and logs these to an output file as operations finish. 
+
+\subsection{Replication Factor}
+Since randomized data structures are not deterministic, we pre-determine a replication factor, representing the number of "copies" of the index we maintain. For example, a replication factor of 1 would update only one index, whereas a replication factor of 5 would initially create 5 indexes internally, and time each index in isolation.
+
+To minimize noise, we selected a replication factor of 50 for our experiments - we note that the distribution may not be a normal distribution \cite{probdist} and instead ends up right-skewed, but also that we generate sufficiently large amounts of data such that we can minimize the effect of outliers. Thus, in our comparison, we directly compare all 3 quartiles ($25\%$, $50\%$, $75\%$). While this means that our individal metrics are not exact benchmarks of a single index, they still accurately represent the relative performance of each index.
+
+\subsection {Workload Generation}
+\label{workloads}
+All workloads are defined by a set number of operations $O$, a write ratio $R_W$, and workload-specific parameters.
+
+\subsubsection{Randomized}
+Randomized workloads are equivalent to a random "weighted coin toss" determining the operation, for each operation. Next, based on a the operation, we randomly generate keys (and values, if needed), then perform the operation. Since randomized workloads are essentially the best indicator of the status quo, we expect the baseline to be comparable to the dynamic indexes.
+
+\subsubsection{Sequential}
+Sequential workloads consist of rounds of alternating write and read operations, with each round's keys and values being randomly generated. Within a round, note that the key is the same for both writes and reads. Under this workload, a data structure can take advantage of locality to accelerate reads.
+
+\subsubsection{Cyclic}
+Cyclic workloads contain a cycle of a pre-determined size $C$. Keys are sequential from $0$ to $C$, and each operation is randomly determined based on $R_W$. Within a sufficiently-large cycle, we expect to see diminished baseline performance, due to the lack of adaptivity within data structures: in the worst case, a complete traversal must still be made to fetch the key.
+
+\subsubsection{Reverse Random}
+\label{reverse_random}
+Reverse random workloads are intended to simulate operations where we first build the index, and then perform queries off it. We have a predetermined duplicate count $D$, which we use to determine the number of queries. First, we perform $O-D$ sequential insertions, then we perform $D$ reads in reverse random order. Since locality of data is less influential here, we expect to see similar results here as to our random implementation.
+
+% TODO: AYDAN
+\subsubsection{Reverse Repeated}
+Reverse Repeated workloads also simulate operations where we first build the index, and then perform queries off it. Similar to Reverse Random Workloads (\ref{reverse_random}), we build the index by performing sequential inserts, then we perform $D$ reads in reverse order. However, we read exclusively the last inserted key. Locality plays a significant role here, and we expect the splay tree have a drastic improvement compared to the baseline data structures.
+
+\section{Evaluation}
+After conducting experiments, we found results to be more apparent within write-heavy workloads, with a significant overlap in the keyspace (0-1024). Note that this does generalize, because real-life workloads contain exponentially more operations than we do, so the index performance will also generalize as the keyspace increases with operation count.
+
+We define a complete traversal of an index as the path taken from the "root" to get to a target  key. Similarly, a partial traversal is a traversal, where the number of steps taken to get to the target key is less than the complete traversal - this can happen due to key locality (i.e. keys being moved closer to the root, needing less steps to access).
+
+In this section, we underscore some of our findings, and delve into a comparison between potential database indexes.
+
+\subsection{Randomized}
+\begin{center}
+  \begin{table}[H]
+    \begin{tabular}{|l|c|c|}
+      \hline
+      \bf{Index} & \bf{Read Time (ns)} & \bf{Write Time (ns)} \\
+      \hline
+      B-Tree&458.0&417.0\\
+      \hline
+      Scapegoat Tree&124542.0&667.0\\
+      \hline
+      Skip List&1875.0&1542.0\\
+      \hline
+      Splay Tree&250.0&209.0\\
+      \hline
+      Treap&1042.0&1167.0\\
+      \hline
+      Randomized Treap&1500.0&833.0\\
+      \hline
+    \end{tabular}
+    \caption{Median read and write latencies, in nanoseconds, for randomized workload with write ratio of 90\%.}
+  \end{table}
+\end{center}
+
+Under the randomized workload, the splay tree is the optimal data structure. We note that it has better read and write performance than both of our baseline data structures (B-Tree and Skip List). 
+
+Since the average-case scenario across all indexes is to perform a complete traversal every time a new key is seen (random key selections lead to the absence of locality), this leads us to the conclusion that the splay tree does not necessarily outperform the B-Tree or the Skip List in terms of operations, but moreso in terms of implementation and asymptotic coefficients. 
+
+Although all four data structures have $O(logn)$ asymptotic runtime, it is apparent that this implementation of the splay tree has better coefficients than the other implementations, leading to enhanced performance.
+
+\begin{center}
+  \begin{figure}[H]
+    \includegraphics[scale=0.40]{assets/randomized.png}
+    \caption{Density plots of indexes under the randomized workload. Note that the splay tree is the most performant, both in terms of reads and write.}
+  \end{figure}
+\end{center}
+\newpage
+
+\subsection{Sequential}
+\begin{center}
+  \begin{table}[H]
+    \begin{tabular}{|l|c|c|}
+      \hline
+      \bf{Index} & \bf{Read Time (ns)} & \bf{Write Time (ns)} \\
+      \hline
+      B-Tree&709.0&667.0\\
+      \hline
+      Scapegoat Tree&1426083.5&875.0\\
+      \hline
+      Skip List&2000.0&1958.0\\
+      \hline
+      Splay Tree&84.0&42.0\\
+      \hline
+      Treap&151500.0&63667.0\\
+      \hline
+      Randomized Treap&541.0&333.0\\
+      \hline
+    \end{tabular}
+    \caption{Read and write latencies for sequential workload with 10000 operations.}
+  \end{table}
+\end{center}
+
+Under the sequential workload, the splay tree is the optimal data structure, with the randomized treap coming next after it. Both of these data structures have better read and write performance than both of our baseline data structures (B-Tree and Skip List).
+
+Because the sequential workload alternates writes with successive reads of the same keys, splay trees demonstrate the strongest performance due to their support of temporal locality. Each write operation inserts a node that is brought to the root of the tree, so the next read accesses the element at the root itself, giving us optimal performance.
+
+Additionally, the randomized treap when amortized becomes a balanced tree, so inserts and reads become on average $O(logn)$. B-Trees and Skip Lists have the same averagruntime as well, but have added overhead when it comes to maintaining keys, pointers, and (for B-Trees) splitting nodes during insertion. 
+
+\begin{center}
+  \begin{figure}[H]
+    \includegraphics[scale=0.40]{assets/sequential.png}
+    \caption{Density plots of the indexes under the sequential workload. Notice that the splay tree and the randomized treap outperform the B-Tree and Skip List.}
+  \end{figure}
+\end{center}
+
+\subsection{Cyclic}
+\begin{center}
+  \begin{table}[H]
+    \begin{tabular}{|l|c|c|}
+      \hline
+      \bf{Index} & \bf{Read Time (ns)} & \bf{Write Time (ns)} \\
+      \hline
+      B-Tree&334.0&333.0\\
+      \hline
+      Scapegoat Tree&119167.0&292.0\\
+      \hline
+      Skip List&1125.0&1083.0\\
+      \hline
+      Splay Tree&83.0&83.0\\
+      \hline
+      Treap&1000.0&1042.0\\
+      \hline
+      Randomized Treap&916.0&375.0\\
+      \hline
+    \end{tabular}
+    \caption{Read and write latencies for cyclic workload with 10000 operations, 90\% write ratio, and a cycle size of 500.}
+  \end{table}
+\end{center}
+
+Since cycles require a subset of keys to be accessed frequently, we expect locality-based data structures (splay tree) to dramatically outperform other data structures.
+At each cycle, the same set of keys are called - within all data structure, a complete traversal is made to retrieve the item for the first time. However, locality-based data structures will moe this item up towards the root, whereas other data structures will have to make the complete traversal every time the element is accessed. 
+This explains the multimodal shape of data observed - the farthest peak within the splay tree (at approximately $2^{6.75}$ nanoseconds) represents the time taken to make the first traversal, the middle peak (at approximately $2^{6.15}$ nanoseconds) represents the time taken in every cycle, whereas the first peak represents the reads in the first cycle. This pattern reepeats for all other indexes, and here we see the advantage of the splay tree.
+
+\begin{center}
+  \begin{figure}[H]
+    \includegraphics[scale=0.40]{assets/cyclic.png}
+    \caption{Density plots of the indexes. Now that splay trees outperform both indexes}
+  \end{figure}
+\end{center}
+
+
+\subsection{Reverse Repeated}
+\begin{center}
+  \begin{table}[H]
+    \begin{tabular}{|l|c|c|}
+      \hline
+      \bf{Index} & \bf{Read Time (ns)} & \bf{Write Time (ns)} \\
+      \hline
+      B-Tree&458.0&458.0\\
+      \hline
+      Scapegoat Tree&124417.0&292.0\\
+      \hline
+      Skip List&1750.0&1125.0\\
+      \hline
+      Splay Tree&209.0&42.0\\
+      \hline
+      Treap&1000.0&1541.0\\
+      \hline
+      Randomized Treap&1500.0&417.0\\
+      \hline
+    \end{tabular}
+    \caption{Read and write latencies for reverse repeated workload with 10000 operations, and a lookback of 50 reads.}
+  \end{table}
+\end{center}
+Under the reverse repeated workload, because we are repeatedly reading the same key after a series of writes, the splay tree once again outperforms both of our baselines due to its temporal locality. The splay tree maintains the most recently-accessed elements near the root, so repeatedly accessing the most recent element is simply a matter of repeatedly accessing the root node of the splay tree index.
+\begin{center}
+  \begin{figure}[H]
+    \includegraphics[scale=0.40]{assets/reverse-repeat.png}
+    \caption{Density plots of the indexes.}
+  \end{figure}
+\end{center}
+\newpage
+
+\subsection{Reverse Random}
+\begin{center}
+  \begin{table}[H]
+    \begin{tabular}{|l|c|c|}
+      \hline
+      \bf{Index} & \bf{Read Time (ns)} & \bf{Write Time (ns)} \\
+      \hline
+      B-Tree&458.0&541.0\\
+      \hline
+      Scapegoat Tree&124750.0&208.0\\
+      \hline
+      Skip List&1792.0&1084.0\\
+      \hline
+      Splay Tree&209.0&42.0\\
+      \hline
+      Treap&1041.0&84.0\\
+      \hline
+      Randomized Treap&1541.0&167.0\\
+      \hline
+
+    \end{tabular}
+    \caption{Read and write latencies for reverse random workload with 10000 operations, and a lookback of 50 reads.}
+  \end{table}
+\end{center}
+
+Under the reverse random workload, notice that once again, the splay tree outperforms the two baseline data strucutes. Because this workload utilizes random accesses, locality does not play a major role and thus we see similar results as the randomized workload.
+
+\begin{center}
+
+\begin{figure}[H]
+    \includegraphics[scale=0.40]{assets/reverse-random.png}
+\end{figure}
+\end{center}
+\newpage
+
+\section{Discussion}
+Upon examining our experimental results, splay trees and randomized treaps appear to be the best-performing data structures for indexing as they achieve overall better performance than B-trees and skip lists. This suggests that the baseline indexes commonly used in the industry---B-trees and skip lists---may not always be the optimal choice for database indexing.
+
+The high performance of splay trees could likely be due to their self-adjusting nature, which brought frequently accessed elements closer to the root. This made them particularly well-suited for workloads with temporal locality, where the same elements were accessed repeatedly. Additionally, splay trees avoided the overhead associated with explicit rebalancing or restructuring operations---instead, they relied on automatic rotations during accesses, which kept the tree balanced dynamically without extra cost.
+
+Similarly, randomized treaps had a significant advantage due to their probabilistic balancing approach. When amortized, treaps created well-balanced trees without the need for explicit rebalancing operations, making insertions and deletions more lightweight and faster compared to B-trees. In contrast, B-trees require frequent node splits and merges during updates, introducing additional overhead that treaps avoid.
+
+However, one important consideration is the in-memory execution of our workloads. B-trees are designed to optimize for disk-based storage, leveraging their block-oriented structure to minimize the cost of page-based retrievals. In an in-memory setting, this design advantage is not utilized, and the associated overhead of maintaining multiple child pointers and performing node splits can become a drawback. This context likely contributed to the underperformance of B-trees in our experiments.
+
+The results of our study highlight the fact that data structures optimized for disk-based systems may not necessarily be ideal for in-memory databases---under the right conditions, splay trees and randomized treaps can outperform traditional indexes like B-trees and skip lists. This finding encourages system designers to reconsider their choice of database indexes and evaluate data structures based on workload characteristics, particularly when working with in-memory systems.
+
+Real-time applications, which require speed and adaptability during data processing, could particularly benefit from the use of splay trees and treaps. Additionally, hybrid systems that combine disk and in-memory data storage might see performance improvements by utilizing splay trees or treaps for in-memory indexing, while continuing to rely on traditional data structures like B-trees for disk-based storage.
+
+\section{Next Steps}
+Next steps for this research involve integration into modern databases, and seeing if performance matches our evaluations. For instance, adding these indexes within Redis would give us better visibility into end to end speedups, resulting in a better understanding of potential advantages and disadvantages. Additionally, extending this to a multi node system could also be interesting, especially as a replacement for Global Partition Indexes \cite{gpi}.
+
+\clearpage
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{references}
+
+\end{document}
+\endinput
