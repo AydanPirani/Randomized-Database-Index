@@ -174,7 +174,7 @@ Reverse random workloads are intended to simulate operations where we first buil
 
 % TODO: AYDAN
 \subsubsection{Reverse Repeated}
-Reverse Repeated workloads also simulate operations where we first build the index, and then perform queries off it. Similar to Reverse Random Workloads (\ref{reverse_random}), we build the index by performing sequential inserts, then we perform $D$ reads in reverse order. However, we read exclusively the last inserted key - this illustrates the impact of spatial locality
+Reverse Repeated workloads also simulate operations where we first build the index, and then perform queries off it. Similar to Reverse Random Workloads (\ref{reverse_random}), we build the index by performing sequential inserts, then we perform $D$ reads in reverse order. However, we read exclusively the last inserted key. Locality plays a significant role here, and we expect the splay tree have a drastic improvement compared to the baseline data structures.
 
 \section{Evaluation}
 After conducting experiments, we found results to be more apparent within write-heavy workloads, with a significant overlap in the keyspace (0-1024). Note that this does generalize, because real-life workloads contain exponentially more operations than we do, so the index performance will also generalize as the keyspace increases with operation count.
@@ -317,9 +317,7 @@ This explains the multimodal shape of data observed - the farthest peak within t
     \caption{Read and write latencies for reverse repeated workload with 10000 operations, and a lookback of 50 reads.}
   \end{table}
 \end{center}
-
-
-
+Under the reverse repeated workload, because we are repeatedly reading the same key after a series of writes, the splay tree once again outperforms both of our baselines due to its temporal locality. The splay tree maintains the most recently-accessed elements near the root, so repeatedly accessing the most recent element is simply a matter of repeatedly accessing the root node of the splay tree index.
 \begin{center}
   \begin{figure}[H]
     \includegraphics[scale=0.40]{assets/reverse-repeat.png}
@@ -353,7 +351,7 @@ This explains the multimodal shape of data observed - the farthest peak within t
   \end{table}
 \end{center}
 
-Under the reverse random workload, notice that once again, the splay tree outperforms the two baseline data strucutes. Because this workload utilizes random accesses, locality does not play a major role and thus, we expect to see similar results as the randomized workload.
+Under the reverse random workload, notice that once again, the splay tree outperforms the two baseline data strucutes. Because this workload utilizes random accesses, locality does not play a major role and thus we see similar results as the randomized workload.
 
 \begin{center}
 
@@ -364,7 +362,7 @@ Under the reverse random workload, notice that once again, the splay tree outper
 \newpage
 
 \section{Discussion}
-Upon examining our experimental results, splay trees and randomized treaps appear to be the best-performing data structures for indexing as they achieve overall better performance than B-trees and skip lists [talk more about our numbers/percentages here]. This suggests that the baseline indexes commonly used in the industry---B-trees and skip lists---may not always be the optimal choice for database indexing.
+Upon examining our experimental results, splay trees and randomized treaps appear to be the best-performing data structures for indexing as they achieve overall better performance than B-trees and skip lists. This suggests that the baseline indexes commonly used in the industry---B-trees and skip lists---may not always be the optimal choice for database indexing.
 
 The high performance of splay trees could likely be due to their self-adjusting nature, which brought frequently accessed elements closer to the root. This made them particularly well-suited for workloads with temporal locality, where the same elements were accessed repeatedly. Additionally, splay trees avoided the overhead associated with explicit rebalancing or restructuring operations---instead, they relied on automatic rotations during accesses, which kept the tree balanced dynamically without extra cost.
 
