@@ -12,6 +12,12 @@ def process_csv_files(input_directory, output_file):
             # Read the CSV file
             df = pd.read_csv(file_path)
             # Add a column for the filename (workload)
+            ting = filename.split('-')
+            if len(ting) == 4:
+                bs = ting[1][0:2]
+                ratio = (int(bs) / 100)
+            else:
+                ratio = .5
             df['workload'] = filename.split('-')[0]
 
             # Group by 'index' and calculate the required statistics
@@ -30,8 +36,9 @@ def process_csv_files(input_directory, output_file):
             # Merge the quantiles with the grouped data
             grouped_data = pd.merge(grouped_data, quantiles, on='index')
 
-            # Add the workload column back to the grouped data
+            # Add the workload and ratio columns back to the grouped data
             grouped_data['workload'] = filename.split('-')[0]
+            grouped_data['ratio'] = ratio
 
             # Append the processed data to the list
             all_processed_data.append(grouped_data)
@@ -42,7 +49,7 @@ def process_csv_files(input_directory, output_file):
     # Sort the data by 'index' and then by 'workload'
     final_data = final_data.sort_values(by=['index', 'workload'])
 
-    # 3 decimal places
+    # Format numerical values to three decimal places
     final_data[['min', 'mean', 'max', '25%', '50%', '75%']] = final_data[['min', 'mean', 'max', '25%', '50%', '75%']].round(3)
 
     # Write the final data to the output file
