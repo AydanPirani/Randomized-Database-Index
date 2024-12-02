@@ -12,10 +12,10 @@ def process_csv_files(input_directory, output_file):
             # Read the CSV file
             df = pd.read_csv(file_path)
             # Add a column for the filename (workload)
-            ting = filename.split('-')
-            if len(ting) == 4:
-                bs = ting[1][0:2]
-                ratio = (int(bs) / 100)
+            params = filename.split('-')
+            if len(params) == 4:
+                write_ratio = params[1][0:2]
+                ratio = (int(write_ratio) / 100)
             else:
                 ratio = .5
             df['workload'] = filename.split('-')[0]
@@ -55,7 +55,8 @@ def process_csv_files(input_directory, output_file):
     # Write the final data to the output file
     final_data.to_csv(output_file, index=False)
 
-# Example usage
-input_directory = 'out/generated/'  # Ensure this is a directory
-output_file = 'dog.csv'
-process_csv_files(input_directory, output_file)
+if __name__ == "__main__":
+    # Example usage
+    input_directory = 'out/generated/'  # Ensure this is a directory
+    output_file = 'overall_results.csv'
+    process_csv_files(input_directory, output_file)

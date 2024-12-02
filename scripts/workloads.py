@@ -11,11 +11,11 @@ class WorkloadGenerator:
     def generate_workload(self, write_ratio=0.8):
         for _ in range(self.total_operations):
             if random.random() < write_ratio: 
-                key = random.randint(1, 100)
-                value = random.randint(1, 1000)
+                key = random.randint(1, 1024)
+                value = random.randint(1, 1024)
                 self.generator.createWrite(key, value)
             else:
-                key = random.randint(1, 100)
+                key = random.randint(1, 1024)
                 self.generator.createRead(key)
         
     def generate_sequential_workload(self):
@@ -29,7 +29,7 @@ class WorkloadGenerator:
         for key in range(self.total_operations):
             key = key % cycle_size
             if random.random() < write_ratio: 
-                value = random.randint(1, 1000)
+                value = random.randint(1, 1024)
                 self.generator.createWrite(key, value)
             else:
                 self.generator.createRead(key)
@@ -38,11 +38,11 @@ class WorkloadGenerator:
         remaining_ops = self.total_operations - duplicates
         key = None
         for _ in range(remaining_ops):
-            key = random.randint(1, 100)
-            value = random.randint(1, 1000)
+            key = random.randint(1, 1024)
+            value = random.randint(1, 1024)
             self.generator.createWrite(key, value)
         
-        for key in range(duplicates):
+        for _ in range(duplicates):
             key = random.randint(0, remaining_ops)
             self.generator.createRead(key, key * 10)
 
@@ -50,13 +50,10 @@ class WorkloadGenerator:
         remaining_ops = self.total_operations - duplicates
         key = None
         for _ in range(remaining_ops):
-            key = random.randint(1, 100)
-            value = random.randint(1, 1000)
+            key = random.randint(1, 1024)
+            value = random.randint(1, 1024)
             self.generator.createWrite(key, value)
         
-        for key in range(duplicates):
-            self.generator.createRead(key, key * 10)
-
         for _ in range(duplicates):
             self.generator.createRead(key, key * 10)
 
