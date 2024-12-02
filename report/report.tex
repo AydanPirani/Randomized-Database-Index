@@ -1,6 +1,8 @@
 \documentclass[sigconf]{acmart}
 
 \usepackage{float}
+\usepackage{graphicx}
+\graphicspath{ ./assets }
 
 \settopmatter{printacmref=false}
 \renewcommand\footnotetextcopyrightpermission[1]{}
@@ -160,6 +162,7 @@ All workloads are defined by a set number of operations $O$, a write ratio $R_W$
 \subsubsection{Randomized}
 Randomized workloads are equivalent to a random "weighted coin toss" determining the operation, for each operation. Next, based on a the operation, we randomly generate keys (and values, if needed), then perform the operation. Since randomized workloads are essentially the best indicator of the status quo, we expect the baseline to be comparable to the dynamic indexes.
 
+% TODO: AYDAN
 \subsubsection{Sequential}
 Sequential workloads consist of alternating read and write operations, with the keys and values being randomly generated. Note that this is a stricter special variant of the randomized workload, where beyond just setting $R_W=0.5$, we ensure ordering of operations.
 
@@ -170,131 +173,196 @@ Cyclic workloads contain a cycle of a pre-determined size $C$. Keys are sequenti
 \label{reverse_random}
 Reverse random workloads are intended to simulate operations where we first build the index, and then perform queries off it. We have a predetermined duplicate count $D$, which we use to determine the number of queries. First, we perform $O-D$ sequential insertions, then we perform $D$ reads in reverse random order. Since locality of data is less influential here, we expect to see similar results here as to our random implementation.
 
+% TODO: AYDAN
 \subsubsection{Reverse Repeated}
-Reverse Repeated workloads also simulate operations where we first build the index, and then perform queries off it. Similar to Reverse Random Workloads (\ref{reverse_random}), we build the index then perform $D$ reads in reverse order. However, we do this sequentially We expect to see similar results here as to our random implementation. Since reverse locality of data leads to lower read time, we expect our dynamic data structures to outperform the baseline here.
+Reverse Repeated workloads also simulate operations where we first build the index, and then perform queries off it. Similar to Reverse Random Workloads (\ref{reverse_random}), we build the index then perform $D$ reads in reverse order. However, we do this sequentially. We expect to see similar results here as to our random implementation. Since reverse locality of data leads to lower read time, we expect our dynamic data structures to outperform the baseline here.
 
 \section{Evaluation}
-After conducting experiments, we found results to be more apparent within write-heavy workloads. In this section, we underscore some of our findings, and delve into a comparison between potential database indexes.
+After conducting experiments, we found results to be more apparent within write-heavy workloads, with a significant overlap in the keyspace (0-1024). Note that this does generalize, because real-life workloads contain exponentially more operations than we do, so the index performance will also generalize as the keyspace increases with operation count.
+
+We define a complete traversal of an index as the path taken from the "root" to get to a target  key. Similarly, a partial traversal is a traversal, where the number of steps taken to get to the target key is less than the complete traversal - this can happen due to key locality (i.e. keys being moved closer to the root, needing less steps to access).
+
+In this section, we underscore some of our findings, and delve into a comparison between potential database indexes.
 
 \subsection{Randomized}
 
 \begin{center}
   \begin{table}[H]
-    \begin{tabular}{| l | c | c |}
+    \begin{tabular}{|l|c|c|}
       \hline
       \bf{Index} & \bf{Read Time (ns)} & \bf{Write Time (ns)} \\
       \hline
-      B-Tree & & \\
+      B-Tree&458.0&417.0\\
       \hline
-      Skip List & & \\
+      Scapegoat Tree&124542.0&667.0\\
       \hline
-      Randomized Treap & & \\
+      Skip List&1875.0&1542.0\\
       \hline
-      Non-Randomized Treap & & \\
+      Splay Tree&250.0&209.0\\
       \hline
-      Splay Tree & & \\
+      Treap&1042.0&1167.0\\
       \hline
-      Scapegoat Tree & & \\
+      Randomized Treap&1500.0&833.0\\
       \hline
     \end{tabular}
-    \caption{Read and write latencies for randomized workload with write ratio of 90\%.}
+    \caption{Median read and write latencies, in nanoseconds, for randomized workload with write ratio of 90\%.}
   \end{table}
 \end{center}
+
+Under the randomized workload, the splay tree is the optimal data structure. We note that it has better read and write performance than both of our baseline data structures (B-Tree and Skip List). 
+
+Since the average-case scenario across all indexes is to perform a complete traversal every time a new key is seen (random key selections lead to the absence of locality), this leads us to the conclusion that the splay tree does not necessarily outperform the B-Tree or the Skip List in terms of operations, but moreso in terms of implementation and asymptotic coefficients. 
+
+Although all four data structures have $O(logn)$ asymptotic runtime, it is apparent that this implementation of the splay tree has better coefficients than the other implementations, leading to enhanced performance.
+
+\begin{center}
+  \begin{figure}[H]
+    \includegraphics[scale=0.42]{assets/randomized.png}
+    \caption{Density plots of indexes under the randomized workload. Note that the splay tree is the most performant, both in terms of reads and write.}
+  \end{figure}
+\end{center}
+\newpage
 
 \subsection{Sequential}
 \begin{center}
   \begin{table}[H]
-    \begin{tabular}{| l | c | c |}
+    \begin{tabular}{|l|c|c|}
       \hline
       \bf{Index} & \bf{Read Time (ns)} & \bf{Write Time (ns)} \\
       \hline
-      B-Tree & & \\
+      B-Tree&709.0&667.0\\
       \hline
-      Skip List & & \\
+      Scapegoat Tree&1426083.5&875.0\\
       \hline
-      Randomized Treap & & \\
+      Skip List&2000.0&1958.0\\
       \hline
-      Non-Randomized Treap & & \\
+      Splay Tree&84.0&42.0\\
       \hline
-      Splay Tree & & \\
+      Treap&151500.0&63667.0\\
       \hline
-      Scapegoat Tree & & \\
+      Randomized Treap&541.0&333.0\\
       \hline
     \end{tabular}
     \caption{Read and write latencies for sequential workload with 10000 operations.}
   \end{table}
 \end{center}
+
+Under the sequential workload, the splay tree is the optimal data structure, with the randomized treap coming next after it. Both of these data structures have better read and write performance than both of our baseline data structures (B-Tree and Skip List).
+
+Because the sequential workload alternates writes with successive reads of the same keys, splay trees demonstrate the strongest performance due to their support of temporal locality---each write operation inserts a node at the root 
+
+\begin{center}
+  \begin{figure}[H]
+    \includegraphics[scale=0.42]{assets/sequential.png}
+    \caption{Density plots of the indexes under the sequential workload. Notice that the splay tree and the randomized treap both outperformed the B-Tree and Skip List for both reads and writes.}
+  \end{figure}
+\end{center}
+\newpage
+
 \subsection{Cyclic}
 \begin{center}
   \begin{table}[H]
-    \begin{tabular}{| l | c | c |}
+    \begin{tabular}{|l|c|c|}
       \hline
       \bf{Index} & \bf{Read Time (ns)} & \bf{Write Time (ns)} \\
       \hline
-      B-Tree & & \\
+      B-Tree&334.0&333.0\\
       \hline
-      Skip List & & \\
+      Scapegoat Tree&119167.0&292.0\\
       \hline
-      Randomized Treap & & \\
+      Skip List&1125.0&1083.0\\
       \hline
-      Non-Randomized Treap & & \\
+      Splay Tree&83.0&83.0\\
       \hline
-      Splay Tree & & \\
+      Treap&1000.0&1042.0\\
       \hline
-      Scapegoat Tree & & \\
+      Randomized Treap&916.0&375.0\\
       \hline
     \end{tabular}
     \caption{Read and write latencies for cyclic workload with 10000 operations, 90\% write ratio, and a cycle size of 500.}
   \end{table}
 \end{center}
 
+Under the cyclic workload, we see the real impact of spatial locality. Since cycles require a subset of keys to be accessed frequently, we expect locality-based data structures (splay tree) to dramatically outperform other data structures.
+
+At each cycle, the same set of keys are called - within all data structure, a complete traversal is made to retrieve the item for the first time. However, locality-based data structures will moe this item up towards the root, whereas other data structures will have to make the complete traversal every time the element is accessed. 
+
+This explains the multimodal shape of data observed - the farthest peak within the splay tree (at approximately $2^{6.75}$ nanoseconds) represents the time taken to make the first traversal, the middle peak (at approximately $2^{6.15}$ nanoseconds) represents the time taken in every cycle, 
+
+\begin{center}
+  \begin{figure}[H]
+    \includegraphics[scale=0.42]{assets/cyclic.png}
+    \caption{Density plots of the indexes. }
+  \end{figure}
+\end{center}
+\newpage
+
+
 \subsection{Reverse Repeated}
 \begin{center}
   \begin{table}[H]
-    \begin{tabular}{| l | c | c |}
+    \begin{tabular}{|l|c|c|}
       \hline
       \bf{Index} & \bf{Read Time (ns)} & \bf{Write Time (ns)} \\
       \hline
-      B-Tree & & \\
+      B-Tree&458.0&458.0\\
       \hline
-      Skip List & & \\
+      Scapegoat Tree&124417.0&292.0\\
       \hline
-      Randomized Treap & & \\
+      Skip List&1750.0&1125.0\\
       \hline
-      Non-Randomized Treap & & \\
+      Splay Tree&209.0&42.0\\
       \hline
-      Splay Tree & & \\
+      Treap&1000.0&1541.0\\
       \hline
-      Scapegoat Tree & & \\
+      Randomized Treap&1500.0&417.0\\
       \hline
     \end{tabular}
     \caption{Read and write latencies for reverse repeated workload with 10000 operations, and a lookback of 50 reads.}
   \end{table}
 \end{center}
 
+
+\begin{center}
+  \begin{figure}[H]
+    \includegraphics[scale=0.42]{assets/reverse-repeat.png}
+    \caption{Density plots of the indexes.}
+  \end{figure}
+\end{center}
+\newpage
+
 \subsection{Reverse Random}
 \begin{center}
   \begin{table}[H]
-    \begin{tabular}{| l | c | c |}
+    \begin{tabular}{|l|c|c|}
       \hline
       \bf{Index} & \bf{Read Time (ns)} & \bf{Write Time (ns)} \\
       \hline
-      B-Tree & & \\
+      B-Tree&458.0&541.0\\
       \hline
-      Skip List & & \\
+      Scapegoat Tree&124750.0&208.0\\
       \hline
-      Randomized Treap & & \\
+      Skip List&1792.0&1084.0\\
       \hline
-      Non-Randomized Treap & & \\
+      Splay Tree&209.0&42.0\\
       \hline
-      Splay Tree & & \\
+      Treap&1041.0&84.0\\
       \hline
-      Scapegoat Tree & & \\
+      Randomized Treap&1541.0&167.0\\
       \hline
+
     \end{tabular}
     \caption{Read and write latencies for reverse random workload with 10000 operations, and a lookback of 50 reads.}
   \end{table}
 \end{center}
+
+\begin{center}
+  \begin{figure}[H]
+    \includegraphics[scale=0.42]{assets/reverse-random.png}
+    \caption{Density plots of the indexes.}
+  \end{figure}
+\end{center}
+\newpage
 
 \section{Discussion}
 Upon examining our experimental results, splay trees and randomized treaps appear to be the best-performing data structures for indexing as they achieve overall better performance than B-trees and skip lists [talk more about our numbers/percentages here]. This suggests that the baseline indexes commonly used in the industry---B-trees and skip lists---may not always be the optimal choice for database indexing.

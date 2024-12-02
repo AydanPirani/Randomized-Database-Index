@@ -1,62 +1,88 @@
 import os
 import pandas as pd
+from dataclasses import dataclass
+from collections import defaultdict
+import numpy as np
+import tempfile
+import postprocessing
 
-def process_csv_files(input_directory, output_file):
-    # Initialize an empty list to store all processed data
-    all_processed_data = []
+@dataclass
+class ConfigItem:
+    filename: str
+    op_count: int | None
+    write_ratio: float | None    
+    cycle_size: int | None
+    lookback: float | None
+    filter: list | None
 
-    # Iterate through all CSV files in the input directory
-    for filename in os.listdir(input_directory):
-        if filename.endswith('.csv') and '10000ops' in filename:
-            file_path = os.path.join(input_directory, filename)
-            # Read the CSV file
-            df = pd.read_csv(file_path)
-            # Add a column for the filename (workload)
-            params = filename.split('-')
-            if len(params) == 4:
-                write_ratio = params[1][0:2]
-                ratio = (int(write_ratio) / 100)
-            else:
-                ratio = .5
-            df['workload'] = filename.split('-')[0]
+MAPPING = {
+    "splaytree": "Splay Tree",
+    "btree": "B-Tree",
+    "skiplist": "Skip List",
+    "treap_random": "Randomized Treap",
+    "treap": "Treap",
+    "scapegoat": "Scapegoat Tree"
+}
 
-            # Group by 'index' and calculate the required statistics
-            grouped_data = df.groupby(['index']).agg({
-                'time': ['min', 'mean', 'max']
-            }).reset_index()
+CONFIG = {
+    "randomized": ConfigItem("randomized-90write-10000ops",10000, 0.9, None, None, None),
+    "cyclic": ConfigItem("cyclic-90write-500cycle-10000ops",10000, 0.9, 500, None, None),
+    "sequential": ConfigItem("sequential-10000ops", 10000, None, None, None, None),
+    "reverse-random": ConfigItem("reverse-random-50dups-10000ops", 10000, None, 50, None, None),
+    "reverse-repeat": ConfigItem("reverse-repeated-50dups-10000ops", 10000, None, 50, None, None),
+}
 
-            # Flatten the MultiIndex columns
-            grouped_data.columns = ['index', 'min', 'mean', 'max']
+CONFIG["randomized"].filter = ["splaytree", "btree", "skiplist", "treap_random"]
+CONFIG["cyclic"].filter = ["splaytree", "btree", "skiplist", "treap_random"]
+CONFIG["sequential"].filter = ["splaytree", "btree", "skiplist", "treap_random"]
+CONFIG["reverse-random"].filter = ["splaytree", "btree", "skiplist", "treap_random"]
+CONFIG["reverse-repeat"].filter = ["splaytree", "btree", "skiplist", "treap_random"]
 
-            # Calculate quantiles separately
-            quantiles = df.groupby(['index'])['time'].quantile([0.25, 0.5, 0.75]).unstack(level=-1)
-            quantiles.columns = ['25%', '50%', '75%']
-            quantiles = quantiles.reset_index()
+def main():
+    root = os.getenv('RDI_ROOT')
+    if root is None:
+        print("Must set RDI_ROOT env val to point to root directory!")
+        exit(1)
 
-            # Merge the quantiles with the grouped data
-            grouped_data = pd.merge(grouped_data, quantiles, on='index')
+    csv_in_dir = f"{root}/out/generated"
+    csv_out_dir = f"{root}/out/filtered"    
+    
+    fig_in_dir = f"{root}/figures/generated"
+    fig_out_dir = f"{root}/figures/filtered"
+    
+    for workload, config_item in CONFIG.items():
+        in_csv = f"{csv_in_dir}/{config_item.filename}.csv"
+        in_df = pd.read_csv(in_csv)
+        grouped = in_df.groupby(["index", "op"])["time"].apply(list).unstack(fill_value=[])
+        data = []
+        idx_mapping = {}
+        
+        for index, times in grouped["write"].items():
+            median_write = np.median(times)
+            idx_mapping[index] = len(data)
+            data.append([index, median_write, 0])
+            
+        for index, times in grouped["read"].items():
+            median_read = np.median(times)
+            data[idx_mapping[index]][2] = median_read
+        
+        
+        # with open(f"{csv_out_dir}/{workload}.tbl", "w+") as out_file:
+        #     for line in data:
+        #         index, read, write = line        
+        #         out_file.write(f"{MAPPING[index]}&{read}&{write}\\\\\n\\hline\n")
 
-            # Add the workload and ratio columns back to the grouped data
-            grouped_data['workload'] = filename.split('-')[0]
-            grouped_data['ratio'] = ratio
+        with tempfile.NamedTemporaryFile() as tmpfile:
+            in_df = in_df[in_df["index"].isin(config_item.filter)]
+            in_df["index"] = in_df["index"].map(MAPPING.get)
+            in_df.to_csv(tmpfile, index=False)
 
-            # Append the processed data to the list
-            all_processed_data.append(grouped_data)
+            plt = postprocessing.get_plot(tmpfile.name, config_item.filename)
+            plt.savefig(f"{fig_out_dir}/{workload}.png")
 
-    # Concatenate all processed data into a single DataFrame
-    final_data = pd.concat(all_processed_data, ignore_index=True)
+        
 
-    # Sort the data by 'index' and then by 'workload'
-    final_data = final_data.sort_values(by=['index', 'workload'])
-
-    # Format numerical values to three decimal places
-    final_data[['min', 'mean', 'max', '25%', '50%', '75%']] = final_data[['min', 'mean', 'max', '25%', '50%', '75%']].round(3)
-
-    # Write the final data to the output file
-    final_data.to_csv(output_file, index=False)
+        
 
 if __name__ == "__main__":
-    # Example usage
-    input_directory = 'out/generated/'  # Ensure this is a directory
-    output_file = 'overall_results.csv'
-    process_csv_files(input_directory, output_file)
+    main()

@@ -5,6 +5,15 @@ import matplotlib.pyplot as plt
 import sys
 
 def get_plot(filepath, title):
+    plt.rcParams.update({
+    'axes.titlesize': 16,     # Title font size
+    'axes.labelsize': 14,     # Axes label font size
+    'xtick.labelsize': 12,    # X-axis tick font size
+    'ytick.labelsize': 12,    # Y-axis tick font size
+    'legend.fontsize': 12,    # Legend font size
+    'figure.titlesize': 18    # Figure title font size
+    })
+    
     # Load the CSV data into a DataFrame
     print(f"{filepath=}")
     df = pd.read_csv(filepath)
@@ -22,7 +31,7 @@ def get_plot(filepath, title):
         sns.kdeplot(times, label=str(index))
 
     plt.title("KDE Plot for Write Times")
-    plt.xlabel("Time")
+    plt.xlabel("Log2 Time (Nanoseconds)")
     plt.ylabel("Density")
     plt.legend()
 
@@ -34,7 +43,7 @@ def get_plot(filepath, title):
     except Exception:
         print("Read DNE")
     plt.title("KDE Plot for Read Times")
-    plt.xlabel("Time")
+    plt.xlabel("Log2 Time (Nanoseconds)")
     plt.ylabel("Density")
     plt.legend()
 
